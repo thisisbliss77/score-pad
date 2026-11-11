@@ -1,0 +1,1707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Score Pad keeps score for card, dice and board games: rounds, totals, dealer, rules, a leaderboard and ready-made sheets for 23 games.">
+<meta name="theme-color" content="#1d6a49">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Score Pad">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Score Pad</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Base reset */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-size: 14px; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: a single column score pad. Games list first; inside a game, standings on top,
+   then the round-by-round sheet (rows = rounds, grouped columns = players), setup below. */
+:root {
+  --bg: #f1f5f2;
+  --surface: #ffffff;
+  --sunk: #e7eeea;
+  --ink: #16211b;
+  --muted: #5a6a61;
+  --line: #d3dcd6;
+  --accent: #1d6a49;
+  --accent-ink: #ffffff;
+  --lead: #b97a12;
+  --danger: #b2372b;
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1613; --surface: #18221d; --sunk: #202c26; --ink: #e7efea; --muted: #93a39a;
+    --line: #2c3a33; --accent: #52c08c; --accent-ink: #0b1410; --lead: #e6b04a; --danger: #f08273;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1613; --surface: #18221d; --sunk: #202c26; --ink: #e7efea; --muted: #93a39a;
+  --line: #2c3a33; --accent: #52c08c; --accent-ink: #0b1410; --lead: #e6b04a; --danger: #f08273;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 15px; line-height: 1.45;
+}
+.wrap {
+  max-width: 980px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px;
+}
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; letter-spacing: -0.01em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.status { font-size: 13px; color: var(--muted); }
+.status.warn { color: var(--danger); }
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 9px 14px; font-weight: 500; min-height: 40px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+.btn.armed { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+.btn.small { padding: 4px 9px; min-height: 30px; font-size: 13px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 9px 12px; min-height: 40px; font-size: 16px; min-width: 0;
+}
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row .field { flex: 1 1 180px; }
+
+/* Home */
+.head { display: flex; flex-direction: column; gap: 4px; }
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.game {
+  text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px;
+  padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.game strong { font-family: var(--display); font-size: 17px; overflow-wrap: anywhere; }
+.game span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.game .who { color: var(--ink); }
+.empty { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--muted); }
+
+/* Game view */
+.top { display: flex; gap: 8px; align-items: center; }
+.title {
+  flex: 1; min-width: 0; font-family: var(--display); font-weight: 700; font-size: 22px;
+  border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 8px;
+}
+.title:hover, .title:focus { border-color: var(--line); background: var(--surface); }
+.standings { display: flex; gap: 8px; flex-wrap: wrap; }
+.stand {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 12px; display: flex; flex-direction: column; min-width: 92px;
+}
+.stand .n { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.stand .v { font-family: var(--display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stand.lead { border-color: var(--lead); }
+.stand.lead .n { color: var(--lead); font-weight: 600; }
+
+.sheet { overflow-x: auto; width: fit-content; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+thead th { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--sunk); }
+thead th.pl { text-align: center; font-family: var(--display); font-size: 14px; color: var(--ink); }
+th.unscored { font-weight: 400; font-style: italic; }
+.g { border-left: 1px solid var(--line); }
+td.rd, th.rd { text-align: center; color: var(--muted); width: 2.4em; position: sticky; left: 0; background: var(--surface); }
+thead th.rd { background: var(--sunk); }
+td.dl, th.dl { text-align: left; }
+td.tot, th.tot { font-weight: 600; }
+td.tot { color: var(--accent); }
+tfoot td { border-bottom: 0; background: var(--sunk); font-weight: 600; }
+tfoot td.rd { background: var(--sunk); }
+tfoot td.final { font-family: var(--display); font-size: 17px; color: var(--ink); }
+.cell {
+  width: 3.6em; text-align: right; font-size: 16px; padding: 5px 4px;
+  border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cell:focus { outline: none; border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); background: var(--sunk); }
+.dealer {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 4px 8px; font-size: 13px; max-width: 8.5em;
+}
+.x { border: 0; background: transparent; color: var(--muted); padding: 4px 8px; border-radius: 6px; font-size: 13px; }
+.x.armed { background: var(--danger); color: var(--surface); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.actions .hint { font-size: 13px; color: var(--muted); }
+.dchip {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid currentColor; font-size: 11px; font-weight: 700; margin-right: 4px;
+}
+
+.pname { border: 0; background: transparent; padding: 2px 4px; border-radius: 6px; display: inline-flex; align-items: center; font-weight: 600; }
+.pname .dchip { color: var(--accent); }
+/* The D keeps its space when hidden, so moving it never changes a column's width. */
+.dchip.off { visibility: hidden; }
+.over { background: var(--accent); color: var(--accent-ink); width: fit-content; max-width: 100%; border-radius: 12px; padding: 22px 20px; display: flex; align-items: center; gap: 14px; }
+.over > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cup { flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .over.pop { animation: pop .6s cubic-bezier(.2, 1.4, .4, 1) both; }
+  .over.pop .cup { animation: wig 1.2s ease-in-out .3s 2; }
+}
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes wig { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+.over p { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.over h1 { font-size: 28px; overflow-wrap: anywhere; }
+.finaltable .cell, .finaltable .pname { pointer-events: none; }
+.finaltable .x { display: none; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.note { font-size: 13px; color: var(--muted); max-width: 65ch; }
+td.rd.lbl { text-align: left; width: auto; color: var(--ink); font-size: 13px; }
+.cell[readonly] { color: var(--muted); }
+.tpl { display: inline-flex; align-items: center; }
+.endrow { display: flex; justify-content: flex-end; }
+.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .5); display: grid; place-items: center; padding: 16px; z-index: 60; }
+.dialog { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 20px; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
+.dialog h3 { font-size: 18px; }
+.dialog .row { justify-content: flex-end; }
+.noterow { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.noterow .btn { flex: none; }
+.rules { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 10px; max-width: 65ch; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: transparent; padding: 8px 10px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.rowd { width: 16px; height: 16px; font-size: 9px; color: var(--accent); margin-right: 3px; vertical-align: middle; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.field:disabled { opacity: .6; }
+.cell:disabled { opacity: .4; cursor: not-allowed; }
+.lockmsg { font-weight: 600; color: var(--lead); max-width: 65ch; }
+.lbhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lbhead .dealer { max-width: 12em; }
+.lbsheet { width: 100%; }
+.lb { width: 100%; }
+.lb th.who, .lb td.who { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.lb .rk { text-align: center; color: var(--muted); width: 2.4em; }
+.lb tbody tr:last-child td { border-bottom: 0; }
+.lbname { border: 0; background: transparent; padding: 2px 0; font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+.lb tr.first .lbname { color: var(--lead); }
+.lbmore td { text-align: left; white-space: normal; font-size: 13px; color: var(--muted); background: var(--sunk); }
+.pickrow { display: flex; gap: 8px; }
+.pickrow select { flex: 1; min-width: 0; }
+.pickrow .btn { flex: none; }
+#picks { display: flex; flex-direction: column; gap: 8px; }
+#picks:empty { display: none; }
+.grp { font-size: 12px; color: var(--muted); }
+.tight th, .tight td { padding: 6px 4px; }
+.tight th.rd, .tight td.rd { padding-left: 8px; }
+.cell.bad { box-shadow: inset 0 -2px 0 var(--danger); background: var(--sunk); }
+.grprow td { background: var(--sunk); font-weight: 600; font-size: 13px; }
+.grprow td.rd { background: var(--sunk); color: var(--ink); }
+.fab { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); }
+.fabspace { height: 36px; }
+/* Per-game colour: each game sets a hue, and the accent, header tint and lines follow it in both themes. */
+.themed { --accent: hsl(var(--h) var(--s, 55%) 30%); --sunk: hsl(var(--h) 34% 93%); --line: hsl(var(--h) 18% 84%); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .themed { --accent: hsl(var(--h) var(--s, 55%) 70%); --sunk: hsl(var(--h) 22% 17%); --line: hsl(var(--h) 14% 26%); }
+}
+:root[data-theme="dark"] .themed { --accent: hsl(var(--h) var(--s, 55%) 70%); --sunk: hsl(var(--h) 22% 17%); --line: hsl(var(--h) 14% 26%); }
+.t-hearts { --h: 350; --s: 65%; } .t-spades { --h: 228; --s: 45%; } .t-euchre { --h: 150; --s: 50%; } .t-pinochle { --h: 14; --s: 65%; }
+.t-ohhell { --h: 24; --s: 75%; } .t-wizard { --h: 268; --s: 50%; } .t-gin { --h: 172; --s: 55%; } .t-rummy { --h: 200; --s: 60%; }
+.t-canasta { --h: 36; --s: 70%; } .t-cribbage { --h: 26; --s: 40%; } .t-phase10 { --h: 190; --s: 65%; } .t-uno { --h: 4; --s: 70%; }
+.t-golf { --h: 135; --s: 50%; } .t-fivecrowns { --h: 44; --s: 75%; } .t-train { --h: 16; --s: 55%; } .t-farkle { --h: 285; --s: 45%; }
+.t-scrabble { --h: 160; --s: 50%; } .t-yahtzee { --h: 222; --s: 60%; } .t-biriba { --h: 212; --s: 70%; } .t-xeri { --h: 212; --s: 70%; }
+.t-diloti { --h: 212; --s: 70%; } .t-tavli { --h: 22; --s: 45%; } .t-lostcities { --h: 32; --s: 60%; }
+.gi { display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; margin-right: 6px; color: var(--accent); vertical-align: -0.2em; flex: none; }
+.gi svg { width: 100%; height: 100%; display: block; }
+.gi.big { width: 30px; height: 30px; margin-right: 0; }
+.themed thead th.pl { color: var(--accent); }
+.game.themed { background: var(--sunk); border-color: var(--line); }
+.game.themed strong { color: var(--accent); }
+.game.themed .gi { width: 1.3em; height: 1.3em; margin-right: 8px; color: var(--accent); font-size: inherit; }
+/* History card: the card opens the game; the date and delete control sit on the title line at the right. */
+.game { padding: 0; flex-direction: row; align-items: flex-start; gap: 0; }
+.gopen { flex: 1; min-width: 0; text-align: left; border: 0; background: transparent; padding: 14px 6px 14px 14px; display: flex; flex-direction: column; gap: 4px; border-radius: 10px; }
+.gside { flex: none; display: flex; align-items: center; gap: 2px; padding: 11px 6px 0 0; }
+.game .gdate { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gside .x.armed { font-size: 12px; }
+.endrow { justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.iobtns { display: flex; gap: 6px; }
+.dialog.wide { max-width: 440px; width: 100%; }
+.iotext { width: 100%; height: 120px; resize: vertical; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+#imp-file { max-width: 100%; font-size: 14px; }
+#imp-text { font-size: 16px; }
+.ionote { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+.ionote:empty { display: none; }
+details.setup { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer; }
+.setup-body { padding: 0 14px 16px; display: flex; flex-direction: column; gap: 18px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.item .field { flex: 1 1 140px; min-height: 36px; padding: 6px 10px; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .btn, .game { transition: border-color .12s; } }
+.game:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">Score Pad needs JavaScript turned on.</p></noscript>
+<div class="wrap" id="app"></div>
+
+<script>
+(function () {
+  var app = document.getElementById('app');
+  var games = {};          // id -> game
+  var currentId = null;
+  var db = null;
+  var mode = 'loading';    // loading | shared | local
+  var slow = false, readOnly = false;
+  var ui = { setupOpen: null, armed: null, lastCell: null };
+  var dirty = new Set(), saving = new Set(), timers = {};
+  var templates = {}, pendTpl = new Set(), LST = 'scorepad.templates';
+  var LS = 'scorepad.games', LSCUR = 'scorepad.current';
+
+  function titleCase(s) {
+    return String(s || '').trim().toLowerCase().replace(/(^|[\s\-(\/])(\S)/g, function (m, a, b) { return a + b.toUpperCase(); });
+  }
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function fmt(n) { return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100); }
+  // Accepts 12, -3, 1.5, 1,5 (decimal comma), 1,250 (thousands), and a typographic minus. Anything else is not a score.
+  function parseScore(v) {
+    var t = String(v == null ? '' : v).replace(/\u2212/g, '-').replace(/\s/g, '');
+    if (/^[-+]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) t = t.replace(/,/g, '');
+    else t = t.replace(',', '.');
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return NaN;
+    return parseFloat(t);
+  }
+  function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function normalize(g) {
+    g = g || {};
+    var ok = function (x) { return !!x && typeof x === 'object' && typeof x.id === 'string' && x.id !== ''; };
+    g.players = Array.isArray(g.players) ? g.players.filter(ok) : [];
+    if (Array.isArray(g.columns)) g.columns = g.columns.filter(ok);
+    if (!Array.isArray(g.columns) || !g.columns.length) g.columns = [{ id: 'pts', name: 'Points', scored: true }];
+    g.rounds = Array.isArray(g.rounds) ? g.rounds.filter(ok) : [];
+    g.rounds.forEach(function (r) { if (!r.s || typeof r.s !== 'object') r.s = {}; });
+    if (typeof g.title !== 'string' || !g.title.trim()) g.title = 'Untitled Game';
+    if (Array.isArray(g.cycle)) g.cycle = g.cycle.filter(function (x) { return typeof x === 'string' && x !== ''; }); else delete g.cycle;
+    return g;
+  }
+
+  /* ---------- scoring ---------- */
+  function cellVal(r, pid, cid) { return r.s[pid] ? r.s[pid][cid] : null; }
+  function roundScore(g, r, pid) {
+    var t = 0;
+    g.columns.forEach(function (c) { if (c.scored) t += num(cellVal(r, pid, c.id)); });
+    return t;
+  }
+  function runningTotals(g, pid) {
+    var t = 0;
+    return g.rounds.map(function (r) { t += roundScore(g, r, pid); return t; });
+  }
+  function colTotal(g, pid, cid) {
+    return g.rounds.reduce(function (t, r) { return t + num(cellVal(r, pid, cid)); }, 0);
+  }
+  function total(g, pid) {
+    return g.rounds.reduce(function (t, r) { return t + roundScore(g, r, pid); }, 0);
+  }
+  function ranked(g) {
+    var list = g.players.map(function (p) { return { p: p, t: total(g, p.id) }; });
+    list.sort(function (a, b) { return g.lowWins ? a.t - b.t : b.t - a.t; });
+    return list;
+  }
+  function leader(g) {
+    var r = ranked(g);
+    if (!g.rounds.length || !r.length) return null;
+    if (r.length > 1 && r[0].t === r[1].t) return null;
+    return r[0];
+  }
+  function winnerText(g) {
+    var r = ranked(g);
+    if (!r.length) return 'No players';
+    var top = r.filter(function (x) { return x.t === r[0].t; });
+    if (top.length === 1) return top[0].p.name + ' wins with ' + fmt(top[0].t);
+    return 'Tie at ' + fmt(r[0].t) + ': ' + top.map(function (x) { return x.p.name; }).join(', ');
+  }
+  function nextDealer(g) {
+    if (!g.players.length) return '';
+    var last = g.rounds[g.rounds.length - 1];
+    if (!last) return g.players.some(function (p) { return p.id === g.firstDealer; }) ? g.firstDealer : g.players[0].id;
+    if (!last.dealer) return g.players[0].id;
+    var i = g.players.findIndex(function (p) { return p.id === last.dealer; });
+    return g.players[(i + 1) % g.players.length].id;
+  }
+  function playerName(g, pid) {
+    var p = g.players.find(function (x) { return x.id === pid; });
+    return p ? p.name : '';
+  }
+
+  /* ---------- saving ---------- */
+  function saveLocal() { lsSet(LS, JSON.stringify(games)); }
+  function loadLocal() {
+    try { var o = JSON.parse(lsGet(LS) || '{}'); Object.keys(o).forEach(function (k) { normalize(o[k]); }); return o; } catch (e) { return {}; }
+  }
+  // Every change marks the game as used, except the save that creates it.
+  function touch(id, creating) {
+    if (!games[id]) return;
+    games[id].used = !creating;
+    games[id].updatedAt = Date.now();
+    if (mode === 'local') { saveLocal(); return; }
+    dirty.add(id);
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(function () { flush(id); }, 500);
+  }
+  function flush(id) {
+    if (mode === 'loading') return;
+    if (mode !== 'shared' || !db) { saveLocal(); dirty.delete(id); return; }
+    if (saving.has(id)) return;
+    if (!games[id]) { dirty.delete(id); return; }
+    saving.add(id); dirty.delete(id);
+    db.collection('games').doc(id).set(clone(games[id])).then(function () {
+      readOnly = false;
+    }, function (e) {
+      if (e && e.code === 'invalid_argument') readOnly = true;
+      saveLocal();
+    }).then(function () {
+      saving.delete(id);
+      if (dirty.has(id)) flush(id);
+      setStatus();
+    });
+  }
+  // A game that was opened and left with nothing entered: no players, scores or changes.
+  function isUnused(g) { return g.used === false && !g.over && !g.players.length && !hasScores(g); }
+  function historyList() {
+    return Object.keys(games).map(function (id) { return games[id]; }).filter(function (g) { return !isUnused(g); })
+      .sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+  }
+  // Unused games left behind by a closed tab are cleared after a day.
+  function pruneUnused() {
+    var cutoff = Date.now() - 86400000;
+    Object.keys(games).forEach(function (id) {
+      var g = games[id];
+      if (id !== currentId && isUnused(g) && (g.createdAt || 0) < cutoff) removeGame(id);
+    });
+  }
+  function removeGame(id) {
+    delete games[id]; dirty.delete(id); clearTimeout(timers[id]);
+    if (mode === 'shared' && db) db.collection('games').doc(id).delete().catch(function () {});
+    else saveLocal();
+  }
+
+  /* ---------- rendering ---------- */
+  function statusText() {
+    if (readOnly) return ['You have view-only access, so changes here are not being saved.', true];
+    if (mode === 'loading') return [slow ? 'Saved games can’t be reached yet. Still trying.' : 'Loading saved games…', slow];
+    if (mode === 'local') return ['Saved on this device only.', false];
+    return [slow ? 'Scores may be out of date. Reconnecting.' : 'Saved automatically. Everyone you share this page with sees the same scores.', slow];
+  }
+  function setStatus() {
+    var el = document.getElementById('status'); if (!el) return;
+    var s = statusText(); el.textContent = s[1] ? s[0] : ''; el.hidden = !el.textContent; el.className = 'status' + (s[1] ? ' warn' : '');
+  }
+  function armBtn(key, label, cls) {
+    var on = ui.armed === key;
+    return '<button type="button" class="' + cls + (on ? ' armed' : '') + '" data-act="arm" data-key="' + esc(key) + '">' + (on ? 'Tap again to confirm' : label) + '</button>';
+  }
+
+  /* ---------- choosing a game: search, quick start, grouped list, drop-down ---------- */
+  function presetIndex(name) { for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].name === name) return i; return -1; }
+  function templateIds() {
+    return Object.keys(templates).sort(function (a, b) { return (templates[a].createdAt || 0) - (templates[b].createdAt || 0); });
+  }
+  // The built-in games played most often in History, most played first, then most recent.
+  function favourites(list, limit) {
+    var seen = Object.create(null), order = [];
+    list.forEach(function (g) {
+      var n = gameName(g), i = presetIndex(n);
+      if (i < 0) return;
+      if (!seen[n]) { seen[n] = { i: i, n: 0, at: 0 }; order.push(n); }
+      seen[n].n++; seen[n].at = Math.max(seen[n].at, g.updatedAt || 0);
+    });
+    return order.map(function (n) { return seen[n]; })
+      .sort(function (a, b) { return b.n - a.n || b.at - a.at || a.i - b.i; })
+      .slice(0, limit || 5).map(function (x) { return x.i; });
+  }
+  // Built-in games whose name, or whose group name, contains the search text.
+  function matchGames(q) {
+    q = String(q == null ? '' : q).trim().toLowerCase();
+    if (!q) return [];
+    var out = [];
+    GROUPS.forEach(function (grp) {
+      // A group matches on the start of one of its words ("greek", "dice", "tiles"), from three letters up.
+      var inGroup = q.length >= 3 && grp[0] !== 'Other' && grp[0].toLowerCase().split(/[\s-]+/).some(function (w) { return w.indexOf(q) === 0; });
+      grp[1].forEach(function (n) {
+        var i = presetIndex(n);
+        if (i >= 0 && (n.toLowerCase().indexOf(q) >= 0 || inGroup)) out.push(i);
+      });
+    });
+    return out.sort(function (a, b) { return a - b; });
+  }
+  function chipHTML(i) { return '<button type="button" class="btn small" data-act="preset" data-i="' + i + '">' + iconHTML(THEMES[PRESETS[i].name]) + esc(PRESETS[i].name) + '</button>'; }
+  function tplChipHTML(id) {
+    return '<span class="tpl"><button type="button" class="btn small" data-act="tpl" data-id="' + esc(id) + '">' + esc(templates[id].name || 'Untitled Game') + '</button>' + armBtn('tpl:' + id, '\u00d7', 'x') + '</span>';
+  }
+  function picksHTML(list, query) {
+    var q = String(query == null ? '' : query).trim().toLowerCase(), tids = templateIds();
+    if (q) {
+      var hits = matchGames(q), thits = tids.filter(function (id) { return String(templates[id].name || '').toLowerCase().indexOf(q) >= 0; });
+      if (!hits.length && !thits.length) return '<p class="grp">No saved game matches. Tap Custom Game to start a new one with this title.</p>';
+      return '<p class="grp">Matches</p><div class="presets">' + hits.map(chipHTML).join('') + thits.map(tplChipHTML).join('') + '</div>';
+    }
+    var out = '', fav = favourites(list);
+    if (fav.length) out += '<p class="grp">Most played</p><div class="presets">' + fav.map(chipHTML).join('') + '</div>';
+    if (tids.length) out += '<p class="grp">Your templates</p><div class="presets">' + tids.map(tplChipHTML).join('') + '</div>';
+    if (ui.allOpen) {
+      out += GROUPS.map(function (grp) {
+        return '<p class="grp">' + esc(grp[0]) + '</p><div class="presets">' + grp[1].map(function (n) { return presetIndex(n); }).filter(function (i) { return i >= 0; }).map(chipHTML).join('') + '</div>';
+      }).join('');
+    }
+    return out;
+  }
+  function pickOptions() {
+    var tids = templateIds();
+    return '<option value="">Choose a game\u2026</option>' + GROUPS.map(function (grp) {
+      return '<optgroup label="' + esc(grp[0]) + '">' + grp[1].map(function (n) { var i = presetIndex(n); return i < 0 ? '' : '<option value="p:' + i + '">' + esc(n) + '</option>'; }).join('') + '</optgroup>';
+    }).join('') + (tids.length ? '<optgroup label="Your templates">' + tids.map(function (id) {
+      return '<option value="t:' + esc(id) + '">' + esc(templates[id].name || 'Untitled Game') + '</option>';
+    }).join('') + '</optgroup>' : '');
+  }
+
+  /* ---------- leaderboard: wins across finished games ---------- */
+  function gameName(g) { return (typeof g.rk === 'string' && g.rk) || g.title; }
+  function hasScores(g) { return g.rounds.some(function (r) { return !rowEmpty(r); }); }
+  // Counts only games ended with Game Over that have at least one score. Players are matched by name,
+  // ignoring capitals and extra spaces. A tie at the top is a win for each tied player.
+  function leaderboard(list, filter) {
+    var done = list.filter(function (g) { return g.over && g.players.length && hasScores(g); });
+    var names = [];
+    done.forEach(function (g) { if (names.indexOf(gameName(g)) < 0) names.push(gameName(g)); });
+    names.sort(function (a, b) { return a.localeCompare(b); });
+    if (filter && names.indexOf(filter) < 0) filter = '';
+    var when = function (g) { return g.endedAt || g.updatedAt || 0; };
+    var map = Object.create(null), order = [];
+    done.filter(function (g) { return !filter || gameName(g) === filter; })
+      .sort(function (a, b) { return when(a) - when(b); })
+      .forEach(function (g) {
+        var r = ranked(g), top = r[0].t, seen = Object.create(null);
+        r.forEach(function (x) {
+          var key = String(x.p.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+          if (!key) return;
+          var won = x.t === top;
+          if (seen[key]) { if (won && !seen[key].won) seen[key].won = true; return; }
+          seen[key] = { won: won, name: String(x.p.name).trim().replace(/\s+/g, ' ') };
+        });
+        Object.keys(seen).forEach(function (key) {
+          var e = map[key];
+          if (!e) { e = map[key] = { key: key, name: seen[key].name, wins: 0, played: 0, streak: 0, lastWin: '', by: Object.create(null) }; order.push(key); }
+          var gn = gameName(g);
+          e.name = seen[key].name; e.played++;
+          if (!e.by[gn]) e.by[gn] = { w: 0, p: 0 };
+          e.by[gn].p++;
+          if (seen[key].won) { e.wins++; e.streak++; e.lastWin = gn; e.by[gn].w++; } else e.streak = 0;
+        });
+      });
+    var rows = order.map(function (k) { return map[k]; });
+    rows.forEach(function (e) { e.rate = e.played ? e.wins / e.played : 0; });
+    rows.sort(function (a, b) { return b.wins - a.wins || b.rate - a.rate || b.played - a.played || a.name.localeCompare(b.name); });
+    rows.forEach(function (e, i) { e.rank = i > 0 && rows[i - 1].wins === e.wins && rows[i - 1].played === e.played ? rows[i - 1].rank : i + 1; });
+    return { rows: rows, names: names, filter: filter || '', count: done.length };
+  }
+  function leaderHTML(list) {
+    if (!list.length) return '';
+    var lb = leaderboard(list, ui.lbFilter || '');
+    if (!lb.count) return '<h2>Leaderboard</h2><div class="empty">Finish a game with End Game and its winner will appear here.</div>';
+    var opts = '<option value="">All games</option>' + lb.names.map(function (n) {
+      return '<option value="' + esc(n) + '"' + (n === lb.filter ? ' selected' : '') + '>' + esc(n) + '</option>';
+    }).join('');
+    var body = lb.rows.map(function (e) {
+      var open = ui.lbOpen === e.key;
+      var row = '<tr' + (e.rank === 1 && e.wins ? ' class="first"' : '') + '><td class="rk">' + e.rank + '</td><td class="who"><button type="button" class="lbname" data-act="lbopen" data-key="' + esc(e.key) + '" aria-expanded="' + (open ? 'true' : 'false') + '">' + esc(e.name) + '</button></td>' +
+        '<td>' + e.wins + '</td><td>' + e.played + '</td><td>' + Math.round(e.rate * 100) + '%</td></tr>';
+      if (open) {
+        var by = Object.keys(e.by).sort(function (a, b) { return e.by[b].w - e.by[a].w || a.localeCompare(b); }).map(function (n) { return esc(n) + ' ' + e.by[n].w + ' of ' + e.by[n].p; }).join(' \u00b7 ');
+        row += '<tr class="lbmore"><td></td><td colspan="4">' + by + '<br>' + (e.streak > 1 ? 'Winning streak: ' + e.streak + ' games. ' : '') + (e.lastWin ? 'Last win: ' + esc(e.lastWin) + '.' : 'No wins yet.') + '</td></tr>';
+      }
+      return row;
+    }).join('');
+    return '<div class="lbhead"><h2>Leaderboard</h2>' + (lb.names.length > 1 ? '<select class="dealer" id="lb-filter" aria-label="Leaderboard game">' + opts + '</select>' : '') + '</div>' +
+      '<div class="sheet lbsheet"><table class="lb"><thead><tr><th class="rk">#</th><th class="who">Player</th><th>Wins</th><th>Played</th><th>Win rate</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  /* ---------- export and import: carry games and templates to another device ---------- */
+  var dlNS = null;
+  function okId(x) { return typeof x === 'string' && /^[A-Za-z0-9_\-.~:@+]{1,64}$/.test(x) && ['__proto__', 'constructor', 'prototype', '.', '..'].indexOf(x) < 0; }
+  function exportData() {
+    var out = { app: 'scorepad', version: 1, exportedAt: new Date().toISOString(), games: {}, templates: {} };
+    Object.keys(games).forEach(function (id) { if (!isUnused(games[id])) out.games[id] = clone(games[id]); });
+    Object.keys(templates).forEach(function (id) { out.templates[id] = clone(templates[id]); });
+    return out;
+  }
+  function exportText() { return JSON.stringify(exportData()); }
+  function txt(v, max, fallback) { var t = typeof v === 'string' ? v.slice(0, max) : ''; return t || fallback || ''; }
+  function stamp(v) { return typeof v === 'number' && isFinite(v) && v > 0 ? v : 0; }
+  // Rebuilds an imported game field by field, so nothing unexpected is carried in.
+  function cleanGame(raw, id) {
+    var g = normalize(clone(raw)), out = { id: id, title: txt(g.title, 60, 'Untitled Game'), used: true };
+    out.players = g.players.filter(function (p) { return okId(p.id); }).slice(0, 50).map(function (p) { return { id: p.id, name: txt(p.name, 24, 'Player') }; });
+    out.columns = g.columns.filter(function (c) { return okId(c.id); }).slice(0, 12).map(function (c) {
+      var o = { id: c.id, name: txt(c.name, 16, 'Column'), scored: !!c.scored };
+      if (c.auto) o.auto = true;
+      if (typeof c.max === 'number' && isFinite(c.max)) o.max = c.max;
+      return o;
+    });
+    if (!out.columns.length) out.columns = [{ id: 'pts', name: 'Points', scored: true }];
+    var pids = out.players.map(function (p) { return p.id; }), cids = out.columns.map(function (c) { return c.id; });
+    out.rounds = g.rounds.filter(function (r) { return okId(r.id); }).slice(0, 500).map(function (r) {
+      var o = { id: r.id, dealer: pids.indexOf(r.dealer) >= 0 ? r.dealer : '', s: {} };
+      if (typeof r.label === 'string' && r.label) o.label = r.label.slice(0, 24);
+      if (typeof r.grp === 'string' && r.grp) o.grp = r.grp.slice(0, 24);
+      if (r.upper) o.upper = true;
+      if (r.calc === 'upperBonus') o.calc = 'upperBonus';
+      pids.forEach(function (pid) {
+        var src = r.s && Object.prototype.hasOwnProperty.call(r.s, pid) ? r.s[pid] : null;
+        if (!src || typeof src !== 'object') return;
+        cids.forEach(function (cid) {
+          if (Object.prototype.hasOwnProperty.call(src, cid) && typeof src[cid] === 'number' && isFinite(src[cid])) { if (!o.s[pid]) o.s[pid] = {}; o.s[pid][cid] = src[cid]; }
+        });
+      });
+      return o;
+    });
+    ['over', 'lowWins', 'fixed', 'noDealer'].forEach(function (k) { if (g[k]) out[k] = true; });
+    if (typeof g.rk === 'string' && presetIndex(g.rk) >= 0) out.rk = g.rk;
+    if (typeof g.note === 'string' && g.note) out.note = g.note.slice(0, 400);
+    if (typeof g.head === 'string' && g.head) out.head = g.head.slice(0, 12);
+    if (g.calc === 'yahtzee' || g.calc === 'lostcities') out.calc = g.calc;
+    if (g.dyn === 'wizard') out.dyn = 'wizard';
+    if (pids.indexOf(g.firstDealer) >= 0) out.firstDealer = g.firstDealer;
+    if (g.cycle && g.cycle.length) out.cycle = g.cycle.slice(0, 12).map(function (x) { return x.slice(0, 20); });
+    out.createdAt = stamp(g.createdAt); out.updatedAt = stamp(g.updatedAt);
+    if (stamp(g.endedAt)) out.endedAt = stamp(g.endedAt);
+    return out;
+  }
+  function cleanTemplate(raw, id) {
+    var t = raw && typeof raw === 'object' ? raw : {};
+    var out = { id: id, name: txt(t.name, 60, 'Untitled Game'), low: !!t.low, note: txt(t.note, 400), noDealer: !!t.noDealer, createdAt: stamp(t.createdAt) };
+    out.calc = t.calc === 'yahtzee' || t.calc === 'lostcities' ? t.calc : '';
+    out.rk = typeof t.rk === 'string' && presetIndex(t.rk) >= 0 ? t.rk : '';
+    out.dyn = t.dyn === 'wizard' ? 'wizard' : '';
+    out.head = txt(t.head, 12);
+    out.cycle = Array.isArray(t.cycle) ? t.cycle.filter(function (x) { return typeof x === 'string' && x; }).slice(0, 12).map(function (x) { return x.slice(0, 20); }) : [];
+    out.cols = (Array.isArray(t.cols) ? t.cols : []).filter(function (c) { return c && typeof c === 'object'; }).slice(0, 12).map(function (c) {
+      var o = { n: txt(c.n, 16, 'Column'), s: !!c.s, a: !!c.a };
+      if (typeof c.m === 'number' && isFinite(c.m)) o.m = c.m;
+      return o;
+    });
+    out.rows = (Array.isArray(t.rows) ? t.rows : []).filter(function (r) { return r && typeof r === 'object'; }).slice(0, 60).map(function (r) {
+      return { l: txt(r.l, 24), k: r.k === 'u' || r.k === 'b' ? r.k : '', g: txt(r.g, 24) };
+    });
+    return out;
+  }
+  // Reads exported text. Returns the cleaned games and templates, or an error message to show.
+  function parseImport(text) {
+    var out = { games: [], templates: [], error: '' }, data;
+    text = typeof text === 'string' ? text.trim() : '';
+    if (!text) { out.error = 'Nothing to import yet. Choose the exported file or paste the exported text.'; return out; }
+    if (text.length > 8000000) { out.error = 'That is too large to be a Score Pad export.'; return out; }
+    try { data = JSON.parse(text); } catch (e) { data = null; }
+    if (!data || typeof data !== 'object' || Array.isArray(data) || data.app !== 'scorepad') { out.error = 'That is not a Score Pad export. Use the file or text from the Export button.'; return out; }
+    var gs = data.games && typeof data.games === 'object' && !Array.isArray(data.games) ? data.games : {};
+    var ts = data.templates && typeof data.templates === 'object' && !Array.isArray(data.templates) ? data.templates : {};
+    Object.keys(gs).slice(0, 2000).forEach(function (id) { if (okId(id) && gs[id] && typeof gs[id] === 'object' && !Array.isArray(gs[id])) out.games.push(cleanGame(gs[id], id)); });
+    Object.keys(ts).slice(0, 200).forEach(function (id) { if (okId(id) && ts[id] && typeof ts[id] === 'object' && !Array.isArray(ts[id])) out.templates.push(cleanTemplate(ts[id], id)); });
+    if (!out.games.length && !out.templates.length) out.error = 'That export has no games or templates in it.';
+    return out;
+  }
+  function persistGame(id) { if (mode === 'local') saveLocal(); else { dirty.add(id); flush(id); } }
+  // Adds what is new. A game already on this device is replaced only when the imported copy was changed more recently.
+  function applyImport(parsed) {
+    var res = { added: 0, updated: 0, same: 0, tpl: 0 };
+    parsed.games.forEach(function (g) {
+      var have = Object.prototype.hasOwnProperty.call(games, g.id) ? games[g.id] : null;
+      if (have && !isUnused(have) && (have.updatedAt || 0) >= (g.updatedAt || 0)) { res.same++; return; }
+      if (have) res.updated++; else res.added++;
+      games[g.id] = g; persistGame(g.id);
+    });
+    parsed.templates.forEach(function (t) {
+      var have = Object.prototype.hasOwnProperty.call(templates, t.id) ? templates[t.id] : null;
+      if (have && (have.createdAt || 0) >= (t.createdAt || 0)) return;
+      templates[t.id] = t; persistTpl(t.id); res.tpl++;
+    });
+    return res;
+  }
+  function ioModalHTML() {
+    var open = '<div class="modal"><div class="dialog wide" role="dialog" aria-modal="true" aria-labelledby="io-t">', note = '<p class="ionote" id="io-note" role="status">' + esc(ui.ioNote || '') + '</p>';
+    if (ui.modal === 'export') {
+      var n = historyList().length, t = Object.keys(templates).length;
+      return open + '<h3 id="io-t">Export</h3><p>This is a copy of ' + n + (n === 1 ? ' game' : ' games') + ' and ' + t + (t === 1 ? ' template' : ' templates') + '. ' +
+        (dlNS ? 'Save it as a file, or copy the text, then use Import on the other device.' : 'Copy the text, then paste it into Import on the other device.') + '</p>' +
+        '<textarea class="iotext" id="exp-text" readonly aria-label="Exported data">' + esc(exportText()) + '</textarea>' + note +
+        '<div class="row"><button type="button" class="btn" data-act="cancelmodal">Close</button><button type="button" class="btn' + (dlNS ? '' : ' primary') + '" data-act="copyexport">Copy text</button>' +
+        (dlNS ? '<button type="button" class="btn primary" data-act="savefile">Save as file</button>' : '') + '</div></div></div>';
+    }
+    if (ui.modal === 'import') {
+      return open + '<h3 id="io-t">Import</h3><p>Choose a file made with Export, or paste the exported text. Games already on this device are kept unless the imported copy is newer.</p>' +
+        '<input type="file" id="imp-file" accept=".json,application/json,text/plain" aria-label="Exported file">' +
+        '<textarea class="iotext" id="imp-text" placeholder="Or paste the exported text here" aria-label="Exported text">' + esc(ui.impText || '') + '</textarea>' + note +
+        '<div class="row"><button type="button" class="btn" data-act="cancelmodal">Cancel</button><button type="button" class="btn primary" data-act="doimport">Import</button></div></div></div>';
+    }
+    if (ui.modal === 'imported') {
+      return open + '<h3 id="io-t">Import finished</h3>' + note + '<div class="row"><button type="button" class="btn primary" data-act="cancelmodal">Done</button></div></div></div>';
+    }
+    return '';
+  }
+
+  // "Nov 11", with the year added when it is not this year.
+  function fmtDate(ts, now) {
+    if (typeof ts !== 'number' || !isFinite(ts) || ts <= 0) return '';
+    var d = new Date(ts), n = new Date(typeof now === 'number' ? now : Date.now());
+    if (isNaN(d.getTime())) return '';
+    var o = { month: 'short', day: 'numeric' };
+    if (d.getFullYear() !== n.getFullYear()) o.year = 'numeric';
+    try { return d.toLocaleDateString(undefined, o); } catch (e) { return ''; }
+  }
+
+  function renderHome() {
+    var list = historyList();
+    var cards = list.map(function (g) {
+      var l = leader(g);
+      var who = g.over ? 'Final: ' + esc(winnerText(g)) : l ? esc(l.p.name) + ' leads with ' + fmt(l.t) : (g.rounds.length ? 'Tied' : 'No rounds yet');
+      var ended = g.over ? fmtDate(g.endedAt || g.updatedAt) : '';
+      return '<div class="game' + themeClass(g) + '" data-id="' + esc(g.id) + '"><button type="button" class="gopen" data-act="open" data-id="' + esc(g.id) + '">' +
+        '<strong>' + iconHTML(themeFor(g)) + esc(g.title) + '</strong>' +
+        '<span>' + g.players.length + (g.players.length === 1 ? ' player' : ' players') + ' · ' +
+        (g.fixed ? 'score sheet' : g.rounds.length + (g.rounds.length === 1 ? ' round' : ' rounds')) + '</span>' +
+        '<span class="who">' + who + '</span></button>' +
+        '<div class="gside">' + (ended ? '<time class="gdate" datetime="' + esc(new Date(g.endedAt || g.updatedAt).toISOString()) + '" title="Ended ' + esc(ended) + '">' + esc(ended) + '</time>' : g.over ? '' : '<span class="gdate">In progress</span>') +
+        armBtn('game:' + g.id, '\u00d7', 'x') + '</div></div>';
+    }).join('');
+    var empty = mode === 'loading'
+      ? '<div class="empty">Loading your games…</div>'
+      : '<div class="empty">No games yet. Choose a game above, or enter a title and tap Custom Game. Each game keeps its own players, rounds, dealer and running totals.</div>';
+    var keepTitle = (document.getElementById('new-title') || {}).value || '';
+    app.innerHTML =
+      '<div class="head"><h1>Score Pad</h1><p class="status" id="status" data-warnonly="1"></p></div>' +
+      '<form class="row" id="newgame"><input class="field" id="new-title" placeholder="Search or enter Game Title" maxlength="60" autocomplete="off" aria-label="Search games, or title for a custom game">' +
+      '<button class="btn primary" type="submit">Custom Game</button></form>' +
+      '<h2>Games</h2>' +
+      '<div class="pickrow"><select class="field" id="game-pick" aria-label="Choose a game">' + pickOptions() + '</select>' +
+      '<button type="button" class="btn" data-act="allgames" aria-expanded="' + (ui.allOpen ? 'true' : 'false') + '">' + (ui.allOpen ? 'Hide list' : 'All games') + '</button></div>' +
+      '<div id="picks">' + picksHTML(list, keepTitle) + '</div>' +
+      leaderHTML(list) +
+      '<h2>History</h2>' +
+      (list.length ? '<div class="games">' + cards + '</div>' : empty) +
+      '<div class="endrow"><div class="iobtns"><button type="button" class="btn small" data-act="export"' + (list.length || Object.keys(templates).length ? '' : ' disabled') + '>Export</button>' +
+      '<button type="button" class="btn small" data-act="import">Import</button></div>' +
+      (list.length ? '<button type="button" class="btn small danger" data-act="askclear">Reset All Data</button>' : '') + '</div>' +
+      ioModalHTML() +
+      (ui.modal === 'clear' && list.length ? '<div class="modal"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><h3 id="dlg-t">Reset All Data?</h3>' +
+        '<p>Are you sure? This permanently deletes ' + (list.length === 1 ? 'your 1 saved game' : 'all ' + list.length + ' saved games') + ' and the scores in ' + (list.length === 1 ? 'it' : 'them') + '. The Leaderboard will be wiped too, because it is built from these games. Your saved templates are kept. It can’t be undone.</p>' +
+        '<div class="row"><button type="button" class="btn" data-act="cancelmodal">Cancel</button><button type="button" class="btn armed" data-act="clearall">Reset All Data</button></div></div></div>' : '');
+    var nt = document.getElementById('new-title'); if (nt && keepTitle) nt.value = keepTitle;
+    setStatus();
+  }
+
+  function standingsHTML(g) {
+    if (!g.players.length) return '';
+    var l = leader(g);
+    return ranked(g).map(function (x) {
+      var lead = l && l.p.id === x.p.id;
+      return '<div class="stand' + (lead ? ' lead' : '') + '"><span class="n">' + (lead ? (g.over ? 'Winner · ' : 'Leading · ') : '') + esc(x.p.name) +
+        '</span><span class="v">' + fmt(x.t) + '</span></div>';
+    }).join('');
+  }
+
+  /* ---------- pre-filled boards, row labels and per-row dealers ---------- */
+  // How many players (or teams) a built-in game takes. Scores are locked until the count fits.
+  function seatInfo(g) {
+    var P = typeof g.rk === 'string' ? PRESETS.filter(function (x) { return x.name === g.rk; })[0] : null;
+    if (!P || !Array.isArray(P.need)) return { min: null, max: null, msg: '', unit: ['player', 'players'] };
+    var min = P.need[0], max = P.need[1], n = g.players.length, u = P.unit || ['player', 'players'], msg = '';
+    var word = function (k) { return k === 1 ? u[0] : u[1]; };
+    if (n < min) {
+      msg = P.name + ' needs ' + (max === min ? 'exactly ' + min : max == null ? 'at least ' + min : min + ' to ' + max) + ' ' + word(max == null ? min : max) +
+        '. Add ' + (min - n) + ' more to start scoring.';
+    } else if (max != null && n > max) {
+      msg = P.name + ' takes at most ' + max + ' ' + word(max) + '. Remove ' + (n - max) + ' to keep scoring.';
+    }
+    return { min: min, max: max, msg: msg, unit: u };
+  }
+  function rowEmpty(r) {
+    return !Object.keys(r.s || {}).some(function (pid) {
+      var c = r.s[pid]; return !!c && typeof c === 'object' && Object.keys(c).some(function (k) { return typeof c[k] === 'number'; });
+    });
+  }
+  function currentRow(g) {
+    for (var i = 0; i < g.rounds.length; i++) if (rowEmpty(g.rounds[i])) return i;
+    return -1;
+  }
+  // On a pre-filled board the deal rotates down the rows from the first dealer.
+  function fixedDealer(g, i) {
+    var n = g.players.length;
+    if (!n || g.noDealer || i < 0) return '';
+    var base = g.players.findIndex(function (p) { return p.id === g.firstDealer; });
+    if (base < 0) base = 0;
+    return g.players[(base + i) % n].id;
+  }
+  // The row the cursor was last in, or -1. The D beside a player's name shows who deals that row.
+  function activeRow(g) {
+    if (!ui.focusRow) return -1;
+    return g.rounds.findIndex(function (r) { return r.id === ui.focusRow; });
+  }
+  function headDealer(g) {
+    if (g.noDealer) return '';
+    var ai = activeRow(g);
+    if (g.fixed) return fixedDealer(g, ai >= 0 ? ai : currentRow(g));
+    if (ai >= 0) return g.rounds[ai].dealer || '';
+    return g.rounds.length ? g.rounds[g.rounds.length - 1].dealer : nextDealer(g);
+  }
+  function rowLabel(g, r, ri) {
+    if (r.label) return r.label;
+    if (g.cycle && g.cycle.length) return (ri + 1) + ' \u00b7 ' + g.cycle[ri % g.cycle.length];
+    return '';
+  }
+  // Wizard: one row per round, and the number of rounds depends on the number of players (60 cards dealt out).
+  function wantRows(g) {
+    if (g.dyn !== 'wizard') return null;
+    var n = Math.min(6, Math.max(3, g.players.length)), count = Math.floor(60 / n), a = [];
+    for (var i = 1; i <= count; i++) a.push(String(i));
+    return a;
+  }
+  function syncRows(g) {
+    var w = wantRows(g);
+    if (!w) return;
+    while (g.rounds.length < w.length) g.rounds.push({ id: uid(), dealer: '', s: {}, label: w[g.rounds.length] });
+    while (g.rounds.length > w.length && rowEmpty(g.rounds[g.rounds.length - 1])) g.rounds.pop();
+  }
+  function updateHeadDealer(g) {
+    if (g.noDealer) return;
+    var d = headDealer(g);
+    app.querySelectorAll('.pname').forEach(function (b) {
+      var chip = b.querySelector('.dchip');
+      if (chip) chip.classList.toggle('off', b.dataset.id !== d);
+    });
+  }
+
+  function sheetHTML(g) {
+    var cols = g.columns, ps = g.players, dealer = headDealer(g), lock = seatInfo(g).msg;
+    if (!ps.length) return '<div class="empty">' + esc(lock || 'Add at least one player in Setup below to start scoring.') + '</div>';
+    var h1 = '<tr><th class="rd" rowspan="2">' + esc(g.head || '#') + '</th>' +
+      ps.map(function (p) { return '<th class="pl g" colspan="' + cols.length + '"><button type="button" class="pname" data-act="deal" data-id="' + p.id + '" title="Make this player the dealer">' + (g.noDealer ? '' : '<span class="dchip' + (dealer === p.id ? '' : ' off') + '" aria-label="Dealer">D</span>') + '<span data-pn="' + p.id + '">' + esc(p.name) + '</span></button></th>'; }).join('') +
+      '<th rowspan="2"></th></tr>';
+    var h2 = '<tr>' + ps.map(function () {
+      return cols.map(function (c, i) {
+        return '<th class="' + (i === 0 ? 'g ' : '') + (c.scored ? '' : 'unscored') + '" data-cn="' + c.id + '">' + esc(c.name) + '</th>';
+      }).join('');
+    }).join('') + '</tr>';
+    var run = {}; ps.forEach(function (p) { run[p.id] = runningTotals(g, p.id); });
+    var body = g.rounds.map(function (r, ri) {
+      var opts = '<option value="">—</option>' + ps.map(function (p) {
+        return '<option value="' + p.id + '"' + (r.dealer === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+      }).join('');
+      return (r.grp ? '<tr class="grprow"><td class="rd lbl">' + esc(r.grp) + '</td>' + ps.map(function (p) {
+        return '<td class="g" colspan="' + cols.length + '" data-gs="' + r.id + '|' + p.id + '">' + fmt(groupScore(g, ri, p.id)) + '</td>';
+      }).join('') + '<td></td></tr>' : '') + '<tr><td class="rd' + (rowLabel(g, r, ri) ? ' lbl' : '') + '">' + (rowLabel(g, r, ri) ? esc(rowLabel(g, r, ri)) : ri + 1) + '</td>' +
+        ps.map(function (p) {
+          return cols.map(function (c, i) {
+            var v = cellVal(r, p.id, c.id);
+            return '<td class="' + (i === 0 ? 'g' : '') + '">' + '<input class="cell" id="c-' + r.id + '-' + p.id + '-' + c.id + '" inputmode="numeric" autocomplete="off" ' + (r.calc || c.auto ? 'readonly tabindex="-1" ' : '') + (lock ? 'disabled ' : '') +
+              'data-r="' + r.id + '" data-p="' + p.id + '" data-c="' + c.id + '" value="' + (v == null ? '' : esc(fmt(v))) + '" ' +
+              'aria-label="' + esc(p.name + ' ' + c.name + ' round ' + (ri + 1)) + '"></td>';
+          }).join('');
+        }).join('') +
+        '<td>' + (g.fixed ? '' : armBtn('round:' + r.id, '×', 'x')) + '</td></tr>';
+    }).join('');
+    if (!g.rounds.length) {
+      body = '<tr><td class="rd"></td><td class="dl muted" colspan="' + (ps.length * cols.length + 1) + '">No rounds yet. Tap Add round to enter the first scores.</td></tr>';
+    }
+    var foot = '<tr><td class="rd">Total</td>' + ps.map(function (p) {
+      return cols.map(function (c, i) {
+        return '<td class="' + (i === 0 ? 'g' : '') + (cols.length === 1 ? ' final' : '') + '" data-ct="' + p.id + '|' + c.id + '">' + footVal(g, p.id, c) + '</td>';
+      }).join('');
+    }).join('') + '<td></td></tr>';
+    return (lock ? '<p class="lockmsg" role="status">' + esc(lock) + '</p>' : '') +
+      '<p class="lockmsg" id="cellhint" role="status" hidden></p>' + '<div class="sheet"><table' + (ps.length * cols.length >= 8 ? ' class="tight"' : '') + '><thead>' + (cols.length > 1 ? h1 + h2 : h1.replace(/ rowspan="2"/g, '')) + '</thead><tbody>' + body + '</tbody><tfoot>' + foot + '</tfoot></table></div>';
+  }
+
+  function setupHTML(g) {
+    var si = seatInfo(g), full = si.max != null && g.players.length >= si.max;
+    var open = ui.setupOpen == null ? (!g.players.length || !g.rounds.length) : ui.setupOpen;
+    var players = g.players.map(function (p) {
+      return '<div class="item"><input class="field" id="pn-' + p.id + '" data-pname="' + p.id + '" value="' + esc(p.name) + '" maxlength="24" aria-label="Player name">' +
+        armBtn('player:' + p.id, 'Remove', 'btn small danger') + '</div>';
+    }).join('');
+    var cols = g.columns.map(function (c) {
+      return '<div class="item"><input class="field" id="cn-' + c.id + '" data-cname="' + c.id + '" value="' + esc(c.name) + '" maxlength="16" aria-label="Column name">' +
+        '<label class="check"><input type="checkbox" id="cs-' + c.id + '" data-cscored="' + c.id + '"' + (c.scored ? ' checked' : '') + '>Counts toward total</label>' +
+        (g.columns.length > 1 ? armBtn('col:' + c.id, 'Remove', 'btn small danger') : '') + '</div>';
+    }).join('');
+    return '<details class="setup" id="setup"' + (open ? ' open' : '') + '><summary>Setup: players and columns</summary><div class="setup-body">' +
+      '<div class="group"><h2>Players</h2>' + players +
+      '<form class="row" id="addplayer"><input class="field" id="new-player" placeholder="' + (full ? 'All ' + si.max + ' ' + si.unit[1] + ' added' : si.unit[0] === 'team' ? 'Team name' : 'Player name') + '" maxlength="24" autocomplete="off" aria-label="New player name"' + (full ? ' disabled' : '') + '>' +
+      '<button class="btn" type="submit"' + (full ? ' disabled' : '') + '>' + (si.unit[0] === 'team' ? 'Add team' : 'Add player') + '</button></form></div>' +
+      '<div class="group"><h2>Columns tracked each round</h2>' +
+      '<p class="muted">Add columns for anything beyond plain points, such as bids, tricks or bonuses. Only columns marked “Counts toward total” add to the running total.</p>' + cols +
+      '<form class="row" id="addcol"><input class="field" id="new-col" placeholder="Column name, e.g. Bid" maxlength="16" autocomplete="off" aria-label="New column name">' +
+      '<button class="btn" type="submit">Add column</button></form></div>' +
+      '<div class="group"><h2>Game</h2><label class="check"><input type="checkbox" id="lowwins" data-lowwins="1"' + (g.lowWins ? ' checked' : '') + '>Lowest total wins</label>' +
+      '<div class="row"><button type="button" class="btn small" data-act="savetpl">' + (ui.tplSaved === g.id ? 'Template saved' : 'Save Template') + '</button>' + armBtn('game:' + g.id, 'Delete this game', 'btn small danger') + '</div></div>' +
+      '</div></details>';
+  }
+
+  function actionsHTML(g) {
+    if (!g.players.length) return '';
+    var nd = playerName(g, nextDealer(g));
+    return '<div class="actions">' + (g.fixed ? '' : '<button type="button" class="btn primary" data-act="addround"' + (seatInfo(g).msg ? ' disabled' : '') + '>Add round</button>') +
+      '<button type="button" class="btn" data-act="flip" title="Make the selected score negative or positive">+/−</button>' +
+      '<button type="button" class="btn" data-act="over">End Game</button>' +
+      '<span class="hint" id="nextdeal">' + (nd && !g.noDealer && !g.fixed ? 'Next deal: ' + esc(nd) : '') + '</span></div>';
+  }
+
+  function renderGame(g) {
+    if (g.over) {
+      app.innerHTML =
+        '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' +
+        iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title"></div>' +
+        '<div class="over' + (ui.fanfare ? ' pop' : '') + '">' + CUP + '<div><p>Game over · ' + (g.fixed ? 'final sheet' : g.rounds.length + (g.rounds.length === 1 ? ' round' : ' rounds')) + '</p><h1>' + esc(winnerText(g)) + '</h1></div></div>' +
+        '<h2>Final scores</h2><div class="standings" id="standings">' + standingsHTML(g) + '</div>' +
+        '<div class="actions"><button type="button" class="btn" data-act="toggletable">' + (ui.showTable ? 'Hide full table' : 'Show full table') + '</button>' +
+        '<button type="button" class="btn" data-act="reopen">Edit</button></div>' +
+        (ui.showTable ? '<div class="finaltable">' + sheetHTML(g) + '</div>' : '') +
+        '<p class="status" id="status"></p>';
+      setStatus(); sizeCells(g);
+      app.querySelectorAll('.finaltable .cell').forEach(function (el) { el.readOnly = true; el.tabIndex = -1; });
+      app.querySelectorAll('.finaltable button').forEach(function (el) { el.disabled = true; });
+      return;
+    }
+    app.innerHTML =
+      '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' +
+      iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title">' + rulesBtn(g) + '</div>' +
+      rulesHTML(g) +
+      '<div class="standings" id="standings">' + standingsHTML(g) + '</div>' +
+      sheetHTML(g) + actionsHTML(g) + setupHTML(g) +
+      '<p class="status" id="status"></p>';
+    setStatus(); sizeCells(g);
+  }
+
+  function render() {
+    var a = document.activeElement, fid = a && a.id, ss = null, se = null;
+    if (fid && a.tagName === 'INPUT' && a.type === 'text') { try { ss = a.selectionStart; se = a.selectionEnd; } catch (e) {} }
+    var sc = document.querySelector('.sheet'), sl = sc ? sc.scrollLeft : 0;
+    var g = currentId && games[currentId];
+    app.className = 'wrap' + (g ? themeClass(g) : '');
+    if (g) renderGame(g); else { currentId = null; renderHome(); }
+    var sc2 = document.querySelector('.sheet'); if (sc2) sc2.scrollLeft = sl;
+    if (fid) {
+      var el = document.getElementById(fid);
+      if (el && el !== document.activeElement) { el.focus(); if (ss != null) { try { el.setSelectionRange(ss, se); } catch (e) {} } }
+    }
+  }
+
+  // Yahtzee: the 35-point upper bonus fills itself in at 63 or more in the upper section.
+  // Lost Cities, one expedition: (card total - 20) x (wagers + 1), plus 20 for 8 or more cards. Null when not started.
+  function lostCitiesScore(sum, wagers, cards) {
+    var t = num(sum), w = Math.min(3, Math.max(0, Math.round(num(wagers)))), n = num(cards);
+    if (!t && !w && !n) return null;
+    return (t - 20) * (w + 1) + (n >= 8 ? 20 : 0);
+  }
+  function applyLostCities(g) {
+    var c = g.columns;
+    if (c.length < 4 || !c[3].auto) return;
+    g.players.forEach(function (p) {
+      g.rounds.forEach(function (r) {
+        var v = r.s[p.id] && typeof r.s[p.id] === 'object' ? r.s[p.id] : (r.s[p.id] = {});
+        var sc = lostCitiesScore(v[c[0].id], v[c[1].id], v[c[2].id]);
+        if (sc == null) delete v[c[3].id]; else v[c[3].id] = sc;
+        var el = document.getElementById('c-' + r.id + '-' + p.id + '-' + c[3].id);
+        if (el) el.value = sc == null ? '' : fmt(sc);
+      });
+    });
+  }
+  // Rows can be grouped (Lost Cities rounds). A group's score is the sum of its rows up to the next group.
+  function groupScore(g, start, pid) {
+    var t = 0;
+    for (var i = start; i < g.rounds.length; i++) {
+      if (i > start && g.rounds[i].grp) break;
+      t += roundScore(g, g.rounds[i], pid);
+    }
+    return t;
+  }
+  function footVal(g, pid, c) { return g.calc === 'lostcities' && !c.auto ? '' : fmt(colTotal(g, pid, c.id)); }
+  function applyCalc(g) {
+    if (g.calc === 'lostcities') return applyLostCities(g);
+    if (g.calc !== 'yahtzee' || !g.columns.length) return;
+    var cid = g.columns[0].id;
+    g.players.forEach(function (p) {
+      var up = 0;
+      g.rounds.forEach(function (r) { if (r.upper) up += num(cellVal(r, p.id, cid)); });
+      g.rounds.forEach(function (r) {
+        if (r.calc !== 'upperBonus') return;
+        if (!r.s[p.id]) r.s[p.id] = {};
+        if (up >= 63) r.s[p.id][cid] = 35; else delete r.s[p.id][cid];
+        var el = document.getElementById('c-' + r.id + '-' + p.id + '-' + cid);
+        if (el) el.value = up >= 63 ? '35' : '';
+      });
+    });
+  }
+
+  /* ---------- presets: standard score sheets ---------- */
+  var TEAM = ' Add each team as one player.';
+  var PRESETS = [
+    { name: 'Hearts', need: [4, 4], cols: [['Points', 1, '', 26, -26]], low: true, head: 'Pass', cycle: ['Left', 'Right', 'Across', 'Hold'], note: 'Each heart is 1 point and the queen of spades is 13. The game ends when someone reaches 100. Lowest total wins.' },
+    { name: 'Spades', need: [2, 2], unit: ['team', 'teams'], cols: [['Bid', 0, '', 13, 0], ['Tricks', 0, '', 13, 0], ['Bags', 0, '', 13, 0], ['Points', 1, '', 230, -330]], note: 'Made bid: 10 per trick bid plus 1 per bag. Missed bid: minus 10 per trick bid. Every 10 bags costs 100. First team to 500 wins.' + TEAM },
+    { name: 'Euchre', need: [2, 2], unit: ['team', 'teams'], cols: [['Points', 1, '', 4, 0]], note: '1 point for 3 or 4 tricks, 2 for all 5, 4 for a lone march, 2 for a euchre. First team to 10 wins.' + TEAM },
+    { name: 'Pinochle', need: [2, 2], unit: ['team', 'teams'], cols: [['Bid', 0], ['Meld', 1], ['Tricks', 1, '', 250, 0]], note: 'Meld plus trick points each hand. A team that misses its bid loses the bid amount and scores nothing for the hand: enter the lost bid as a negative Meld. First team to 1,500 wins.' + TEAM },
+    { name: 'Oh Hell', need: [3, 7], cols: [['Bid', 0, '', 10, 0], ['Tricks', 0, '', 10, 0], ['Points', 1, '', 20, 0]], note: 'Score 1 per trick taken, plus 10 for an exact bid. Highest total after the last hand wins.' },
+    { name: 'Wizard', lim: 'wizard', need: [3, 6], cols: [['Bid', 0], ['Tricks', 0], ['Points', 1]], head: 'Cards', dyn: 'wizard', note: 'An exact bid scores 20 plus 10 per trick. A missed bid loses 10 per trick over or under. Highest total wins.' },
+    { name: 'Gin Rummy', need: [2, 2], cols: [['Points', 1, '', undefined, 0]], note: 'Knock: the difference in deadwood. Gin: a bonus of 25 (20 in some rules) plus the other hand. Undercut: the difference plus 25 (10 in some rules). First to 100 wins.' },
+    { name: 'Rummy 500', need: [2, 8], cols: [['Points', 1]], note: 'Score your melded cards minus the cards left in your hand. First to 500 wins.' },
+    { name: 'Canasta', need: [2, 2], unit: ['team', 'teams'], cols: [['Bonuses', 1], ['Card points', 1]], note: 'Bonuses for canastas, going out and red threes, plus card points, minus cards left in hand. The game ends when a team has 5,000 at the end of a hand.' + TEAM },
+    { name: 'Cribbage', need: [2, 2], cols: [['Points', 1, '', undefined, 0]], note: 'Count pegging, hands and the crib. First to 121 wins.' },
+    { name: 'Phase 10', need: [2, 6], cols: [['Phase', 0, '', 10, 0], ['Points', 1, '', 230, 0]], low: true, note: 'Record the phase you are on and the points left in your hand. First to finish phase 10 wins. Ties go to the lowest total.' },
+    { name: 'Uno', need: [2, 10], cols: [['Points', 1, '', 1240, 0]], note: 'The winner of each round scores the cards left in the other hands. First to 500 wins.' },
+    { name: 'Golf', need: [2, 8], cols: [['Points', 1, '', 60, -6]], low: true, head: 'Hole', rows: [['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9']], note: 'Nine holes. Lowest total wins.' },
+    { name: 'Five Crowns', lim: 'fivecrowns', need: [1, 7], cols: [['Points', 1]], low: true, head: 'Wild', rows: [['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9'], ['10'], ['Jack'], ['Queen'], ['King']], note: 'Eleven rounds, from 3 cards up to 13. Lowest total wins.' },
+    { name: 'Mexican Train', need: [2, 10], cols: [['Points', 1, '', undefined, 0]], low: true, noDealer: true, head: 'Start', rows: [['Dbl 12'], ['Dbl 11'], ['Dbl 10'], ['Dbl 9'], ['Dbl 8'], ['Dbl 7'], ['Dbl 6'], ['Dbl 5'], ['Dbl 4'], ['Dbl 3'], ['Dbl 2'], ['Dbl 1'], ['Dbl 0']], note: 'Thirteen rounds, from the double twelve down to the double blank. Score the pips left in your hand. Lowest total wins.' },
+    { name: 'Farkle', need: [2, null], cols: [['Points', 1]], noDealer: true, note: 'Enter the points you bank each turn. First to 10,000 wins.' },
+    { name: 'Scrabble', need: [2, 4], cols: [['Points', 1]], noDealer: true, note: 'Enter each turn’s score. At the end, subtract the value of unplayed tiles.' },
+    { name: 'Yahtzee', lim: 'yahtzee', need: [1, null], cols: [['Score', 1]], noDealer: true, calc: 'yahtzee', note: 'Fill in one category per turn. The 35 upper bonus is added automatically at 63 or more in Ones to Sixes. Each extra Yahtzee is 100.',
+      rows: [['Ones', 'u'], ['Twos', 'u'], ['Threes', 'u'], ['Fours', 'u'], ['Fives', 'u'], ['Sixes', 'u'], ['Upper bonus', 'b'], ['3 of a kind'], ['4 of a kind'], ['Full house'], ['Sm. straight'], ['Lg. straight'], ['Yahtzee'], ['Chance'], ['Yahtzee bonus']] }
+  ];
+  /* ---------- Greek games ---------- */
+  PRESETS.push(
+    { name: 'Biriba', need: [2, 3], unit: ['team', 'teams'], cols: [['Bonuses', 1], ['Card points', 1]], note: 'Bonuses for biribas and going out, plus melded card points, minus cards left in hand. Usually played to 5,000.' + TEAM },
+    { name: 'Xeri', need: [2, 2], unit: ['player or team', 'players or teams'], cols: [['Points', 1, '', undefined, 0]], note: '25 points a deal: most cards 3, each ace, king, queen, jack and 10 is 1, plus 1 extra for the 10 of diamonds and 1 for the 2 of clubs. Each xeri adds 10, or 20 with jacks. Commonly first to 151.' },
+    { name: 'Diloti', need: [2, 2], unit: ['player or team', 'players or teams'], cols: [['Points', 1, '', undefined, 0]], note: '11 points a deal: most cards 4, each ace 1, the 10 of diamonds 2, the 2 of clubs 1. Each xeri adds 10. First to 61.' },
+    { name: 'Tavli', need: [2, 2], cols: [['Points', 1, '', 2, 0]], noDealer: true, head: 'Game', cycle: ['Portes', 'Plakoto', 'Fevga'], note: 'One row per game, rotating Portes, Plakoto and Fevga. A win is 1 point, a double win 2. Play to 3, 5 or 7.' }
+  );
+
+  /* ---------- Lost Cities: one row per expedition, three rounds, score worked out for you ---------- */
+  (function () {
+    var rows = [];
+    [1, 2, 3].forEach(function (n) {
+      ['Yellow', 'Blue', 'White', 'Green', 'Red', 'Purple'].forEach(function (colour, i) { rows.push([colour, '', i === 0 ? 'Round ' + n : '']); });
+    });
+    PRESETS.push({ name: 'Lost Cities', need: [2, 2], noDealer: true, head: 'Color', calc: 'lostcities',
+      // Largest possible entries: nine number cards 2 to 10 total 54; 3 wager cards; 12 cards in a column. Best score: (54 - 20) x 4 + 20 = 156.
+      cols: [['Sum', 0, '', 54], ['Wagers', 0, '', 3], ['Cards', 0, '', 12], ['Score', 1, 'auto']], rows: rows,
+      note: 'For each expedition enter the total of its number cards, how many wager cards it has, and how many cards are in the column. The score is worked out for you. Leave an expedition blank if you never started it. The most one expedition can score is 156.' });
+  })();
+
+  var GROUPS = [
+    ['Trick-taking', ['Hearts', 'Spades', 'Euchre', 'Pinochle', 'Oh Hell', 'Wizard']],
+    ['Rummy', ['Gin Rummy', 'Rummy 500', 'Canasta', 'Phase 10', 'Five Crowns']],
+    ['Greek', ['Biriba', 'Xeri', 'Diloti', 'Tavli']],
+    ['Dice and tiles', ['Yahtzee', 'Farkle', 'Scrabble', 'Mexican Train']],
+    ['Other', ['Cribbage', 'Uno', 'Golf', 'Lost Cities']]
+  ];
+
+  /* ---------- look: an original icon and colour for each built-in game ---------- */
+  var ICONS = {
+    heart: '<path d="M12 21s-7.5-4.6-9.5-9.3C1 8.1 3 4.5 6.6 4.5c2 0 3.6 1 5.4 3 1.8-2 3.4-3 5.4-3C21 4.5 23 8.1 21.5 11.7 19.5 16.4 12 21 12 21z"/>',
+    spade: '<path d="M12 2.5c3.5 4 8.5 6.6 8.5 11 0 2.5-1.9 4.3-4.3 4.3-1.2 0-2.3-.5-3.1-1.3.2 1.8.8 3.3 2.2 5H8.7c1.4-1.7 2-3.2 2.2-5-.8.8-1.9 1.3-3.1 1.3-2.4 0-4.3-1.8-4.3-4.3 0-4.4 5-7 8.5-11z"/>',
+    club: '<circle cx="12" cy="7" r="4.2"/><circle cx="7" cy="13" r="4.2"/><circle cx="17" cy="13" r="4.2"/><path d="M10.5 12h3c.2 3.4.8 6 2.2 9.5H8.3c1.4-3.5 2-6.1 2.2-9.5z"/>',
+    diamond: '<path d="M12 2l8 10-8 10-8-10z"/>',
+    target: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.8"/>',
+    hat: '<path d="M12.5 2l4.8 13H7z"/><ellipse cx="12" cy="17.5" rx="10" ry="3.2"/>',
+    cards: '<rect x="4" y="5" width="10" height="14" rx="2" transform="rotate(-12 9 12)" opacity=".5"/><rect x="10" y="5" width="10" height="14" rx="2" transform="rotate(10 15 12)"/>',
+    basket: '<path d="M3 10h18l-2 10.5H5z"/><path d="M7 10c0-4.2 2-6.5 5-6.5s5 2.300 5 6.500" fill="none" stroke="currentColor" stroke-width="2"/>',
+    pegs: '<rect x="2.500" y="6" width="19" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="10" r="1.3"/><circle cx="12" cy="10" r="1.3"/><circle cx="17" cy="10" r="1.3"/><circle cx="7" cy="14" r="1.3"/><circle cx="12" cy="14" r="1.3"/><circle cx="17" cy="14" r="1.3"/>',
+    steps: '<rect x="3" y="15" width="5" height="6" rx="1"/><rect x="9.500" y="10" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="17" rx="1"/>',
+    reverse: '<path d="M4 8.500h11.500" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" transform="rotate(-45 12 12)"/><path d="M14.500 4l6.500 4.500-6.500 4.500z" transform="rotate(-45 12 12)"/><path d="M20 15.500H8.500" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" transform="rotate(-45 12 12)"/><path d="M9.500 11L3 15.500l6.500 4.500z" transform="rotate(-45 12 12)"/>',
+    quad: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2" opacity=".55"/><rect x="3" y="13" width="8" height="8" rx="2" opacity=".55"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+    flag: '<path d="M7 21V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 3.500l10.500 3.500L8 10.500z"/><ellipse cx="12" cy="20.500" rx="8" ry="1.700" opacity=".45"/>',
+    crown: '<path d="M3 17.500L2 7.500l5.500 4L12 4.500l4.500 7 5.500-4-1 10z"/><rect x="3" y="19" width="18" height="2.300" rx="1"/>',
+    domino: '<rect x="6" y="2.500" width="12" height="19" rx="2.500" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.500 12h11" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7.300" r="1.500"/><circle cx="9.700" cy="15" r="1.400"/><circle cx="14.300" cy="18.200" r="1.400"/>',
+    die6: '<rect x="3.500" y="3.500" width="17" height="17" rx="3.500" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.500" cy="7.800" r="1.400"/><circle cx="15.500" cy="7.800" r="1.400"/><circle cx="8.500" cy="12" r="1.400"/><circle cx="15.500" cy="12" r="1.400"/><circle cx="8.500" cy="16.200" r="1.400"/><circle cx="15.500" cy="16.200" r="1.400"/>',
+    die5: '<rect x="3.500" y="3.500" width="17" height="17" rx="3.500" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.600"/><circle cx="16" cy="8" r="1.600"/><circle cx="12" cy="12" r="1.600"/><circle cx="8" cy="16" r="1.600"/><circle cx="16" cy="16" r="1.600"/>',
+    tile: '<rect x="3.500" y="3.500" width="17" height="17" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 17l4-10 4 10M9.600 13.500h4.800" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    meander: '<path d="M3 19.500V4.500h18v15H8V9.500h8.500v5H12.500" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linejoin="round"/>',
+    onecard: '<rect x="6" y="2.500" width="12" height="19" rx="2.500" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.500l3 4.500-3 4.500-3-4.500z"/>',
+    board: '<rect x="2.500" y="3.500" width="19" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 5.500l2 6.500 2-6.500zM10.500 5.500l2 6.500 2-6.500zM15 18.500l2-6.500 2 6.500zM9.500 18.500l2-6.500 2 6.500z"/>',
+    compass: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8l-2.500 5.500L8 16l2.500-5.500z"/>'
+  };
+  var THEMES = Object.create(null);
+  [['Hearts', 'hearts', 'heart'], ['Spades', 'spades', 'spade'], ['Euchre', 'euchre', 'club'], ['Pinochle', 'pinochle', 'diamond'], ['Oh Hell', 'ohhell', 'target'],
+    ['Wizard', 'wizard', 'hat'], ['Gin Rummy', 'gin', 'cards'], ['Rummy 500', 'rummy', 'cards'], ['Canasta', 'canasta', 'basket'], ['Cribbage', 'cribbage', 'pegs'],
+    ['Phase 10', 'phase10', 'steps'], ['Uno', 'uno', 'reverse'], ['Golf', 'golf', 'flag'], ['Five Crowns', 'fivecrowns', 'crown'], ['Mexican Train', 'train', 'domino'],
+    ['Farkle', 'farkle', 'die6'], ['Scrabble', 'scrabble', 'tile'], ['Yahtzee', 'yahtzee', 'die5'], ['Biriba', 'biriba', 'meander'], ['Xeri', 'xeri', 'onecard'],
+    ['Diloti', 'diloti', 'cards'], ['Tavli', 'tavli', 'board'], ['Lost Cities', 'lostcities', 'compass']].forEach(function (x) { THEMES[x[0]] = { slug: x[1], icon: x[2] }; });
+  function themeFor(g) {
+    if (typeof g.rk === 'string' && THEMES[g.rk]) return THEMES[g.rk];
+    if (typeof g.title === 'string' && THEMES[g.title]) return THEMES[g.title];
+    return null;
+  }
+  function themeClass(g) { var t = themeFor(g); return t ? ' themed t-' + t.slug : ''; }
+  function iconHTML(t, size) {
+    return t && ICONS[t.icon] ? '<span class="gi' + (size ? ' ' + size : '') + ' themed t-' + t.slug + '"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">' + ICONS[t.icon] + '</svg></span>' : '';
+  }
+
+  /* ---------- rules: one entry per tab (Setup, Deal, Play, Scoring, Winning) ---------- */
+  var TABS = ['Setup', 'Deal', 'Play', 'Scoring', 'Winning'];
+  var RULES = {
+    'Hearts': [
+      "4 players, each for themselves. Standard 52-card deck, aces high, no trump.",
+      "Deal 13 cards each. Before play, pass 3 cards: left on the first hand, right on the second, across on the third, and no pass on the fourth, then repeat.",
+      "The 2 of clubs leads. Follow suit if you can. Hearts cannot be led until a heart has been played on an earlier trick, unless you hold nothing else. Many groups also bar hearts and the queen of spades from the first trick.",
+      "Each heart taken is 1 point and the queen of spades is 13. If you take all 26 points (shooting the moon), you choose: take 26 off your own score, or add 26 to every other player.",
+      "The game ends when someone has 100 or more at the end of a hand. Lowest total wins. If the lowest scores are tied, play another hand."],
+    'Spades': [
+      "4 players in two partnerships, partners facing each other. Standard 52-card deck. Spades are always trump.",
+      "Deal 13 cards each. Starting left of the dealer, each player bids the number of tricks they expect to take, and partners' bids are added together. A bid of nil means taking no tricks at all.",
+      "The player left of the dealer leads. Follow suit if you can. Spades cannot be led until one has been played on another suit, unless you hold nothing else.",
+      "Made bid: 10 per trick bid plus 1 per extra trick (a bag). Missed bid: minus 10 per trick bid. Every 10 bags costs 100. Nil made is plus 100 and nil failed is minus 100, on top of the partner's own bid.",
+      "First team to 500 wins. If both pass 500 on the same hand, the higher score wins."],
+    'Euchre': [
+      "4 players in two partnerships. 24 cards: 9 through ace in each suit.",
+      "Deal 5 cards each in groups of 2 and 3, then turn the next card face up.",
+      "In turn, each player may order the turned-up suit as trump (the dealer picks that card up) or pass. If all pass, a second round lets players name another suit. The maker may play alone. The jack of trump (right bower) is highest, then the other jack of the same colour (left bower), which counts as a trump. Follow suit.",
+      "Makers take 3 or 4 tricks: 1 point. All 5 tricks: 2 points. All 5 playing alone: 4 points. Makers take fewer than 3 (euchred): the defenders score 2.",
+      "First team to 10 wins."],
+    'Pinochle': [
+      "4 players in two partnerships. 48-card pinochle deck: two each of 9, jack, queen, king, 10 and ace in every suit. Cards rank ace, 10, king, queen, jack, 9.",
+      "Deal 12 cards each. Players bid for the right to name trump. The minimum bid is 250.",
+      "The bid winner names trump, then their partner passes four cards across and gets four back. Everyone shows meld. Then play 12 tricks: follow suit, beat the best card played so far if you can, and trump if you have none of the suit led.",
+      "Meld: run 150, aces around 100, kings around 80, queens around 60, jacks around 40, pinochle (queen of spades with jack of diamonds) 40, royal marriage 40, marriage 20, 9 of trump 10. Tricks: 10 for each ace, 10 and king taken, plus 10 for the last trick, 250 in all. A bidding team that falls short loses the bid amount and scores nothing for the hand. Some groups drop the last zero from every value.",
+      "First team to 1,500 wins. If both pass it on the same hand, the bidding team wins."],
+    'Oh Hell': [
+      "3 to 7 players. Standard 52-card deck.",
+      "The hand size changes by one card every deal. A common sequence starts at 10 cards each (8 with six players, 7 with seven), goes down to 1 and comes back up. Turn the next card to set trump.",
+      "Starting left of the dealer, each player bids the exact number of tricks they will take. The dealer bids last and may not make the bids add up to the number of tricks (some groups drop this rule). Follow suit if you can.",
+      "Score 1 point per trick taken, plus a 10 bonus for an exact bid. A simpler version gives 10 plus the bid for an exact bid and nothing for a miss.",
+      "Highest total after the last hand wins."],
+    'Wizard': [
+      "3 to 6 players. 60-card deck: a standard 52 plus 4 Wizards and 4 Jesters.",
+      "Deal 1 card each in the first round, 2 in the second, and so on until the whole deck is dealt. Turn the next card for trump. A turned Jester means no trump, a turned Wizard lets the dealer choose, and the last round has no trump.",
+      "Each player bids an exact number of tricks. Follow suit, but a Wizard or Jester may be played at any time. The first Wizard played wins the trick. Jesters lose, unless every card is a Jester, when the first one wins. If a Jester is led, the next card sets the suit.",
+      "Exact bid: 20 plus 10 per trick taken. Missed bid: minus 10 for each trick over or under.",
+      "Highest total after the final round wins."],
+    'Gin Rummy': [
+      "2 players. Standard 52-card deck, ace low. Face cards count 10 and aces 1.",
+      "Deal 10 cards each. Turn the next card face up to start the discard pile.",
+      "On your turn draw the top card of the stock or the discard pile, then discard one. You may knock when your unmatched cards (deadwood) total 10 or less. The opponent may lay off cards on the knocker's melds, but not after gin.",
+      "The knocker scores the difference in deadwood. Gin (no deadwood) scores a bonus plus the opponent's deadwood. If the opponent has equal or less deadwood, they score the difference plus an undercut bonus. Printed rules differ on the bonuses: 25 each is common, and others use 20 for gin and 10 for an undercut. Agree before you start.",
+      "First to 100 wins. Some players then add 100 for game and 20 for each hand won."],
+    'Rummy 500': [
+      "2 to 8 players. Standard 52-card deck plus jokers. Use two decks for 5 or more players.",
+      "Deal 7 cards each (13 each with 2 players). Turn one card up to start the discard pile, which is spread so every card shows.",
+      "Draw from the stock, or take a card from anywhere in the discard pile along with every card on top of it. The card you reached for must be melded at once. Meld sets and runs, lay off on any meld, then discard. The hand ends when a player is out of cards or the stock runs out.",
+      "Add up the cards you melded and subtract the cards left in your hand. Aces 15 (1 when melded as ace, 2, 3), face cards 10, jokers 15, others face value.",
+      "The game ends when someone reaches 500 at the end of a hand. Highest total wins."],
+    'Canasta': [
+      "4 players in two partnerships. Two 52-card decks plus 4 jokers (108 cards). Jokers and 2s are wild.",
+      "Deal 11 cards each. Turn one card up to start the discard pile. Red 3s are laid on the table and replaced from the stock.",
+      "Draw, meld, discard. Melds are 3 or more cards of one rank, with at least 2 natural cards and at most 3 wild. Seven or more make a canasta. A team's first meld must reach a minimum: 15 if below zero, 50 up to 1,495, 90 from 1,500, 120 from 3,000. A team needs a canasta to go out.",
+      "Natural canasta 500, mixed 300, going out 100 (200 concealed), each red 3 is 100 (800 for all four), or minus that if your team has no meld. Cards: joker 50, 2 and ace 20, king down to 8 are 10, 7 down to 4 and black 3s are 5. Subtract cards left in hand.",
+      "The game ends when a team has 5,000 or more at the end of a hand. The higher total wins."],
+    'Cribbage': [
+      "2 players. Standard 52-card deck and a cribbage board. Kings high, aces low. Face cards count 10.",
+      "Deal 6 cards each. Each player discards 2 face down to form the crib, which belongs to the dealer. Cut for the starter card. If it is a jack, the dealer pegs 2.",
+      "Starting with the non-dealer, play cards alternately, announcing the running total up to 31. Peg 2 for making 15, 2 for a pair, 1 per card for runs, and 1 for playing the last card before 31 (2 if it makes exactly 31).",
+      "After play, count hands with the starter (non-dealer first), then the crib. Each 15 is 2, each pair 2, runs 1 per card, a 4-card flush 4 (5 with the starter), and the jack of the starter's suit 1. The crib scores a flush only if all five cards match.",
+      "First to 121 wins, even in the middle of a hand."],
+    'Phase 10': [
+      "2 to 6 players. The 108-card Phase 10 deck: numbers 1 to 12 in four colours, 8 Wilds and 4 Skips.",
+      "Deal 10 cards each. Turn one card up to start the discard pile.",
+      "Draw, then discard. Lay down your current phase when you hold all of it, then add cards to any laid-down phase. Phases: 1) two sets of 3. 2) set of 3 and run of 4. 3) set of 4 and run of 4. 4) run of 7. 5) run of 8. 6) run of 9. 7) two sets of 4. 8) 7 cards of one colour. 9) set of 5 and set of 2. 10) set of 5 and set of 3.",
+      "When someone goes out, the others score the cards left in hand: 1 to 9 are 5 each, 10 to 12 are 10 each, Skip 15, Wild 25. Anyone who completed their phase moves on to the next.",
+      "The first player to complete phase 10 wins. If several finish it in the same hand, the lowest total wins."],
+    'Uno': [
+      "2 to 10 players. The 108-card Uno deck.",
+      "Deal 7 cards each. Turn one card up to start the discard pile.",
+      "Match the top card by colour, number or symbol, or play a Wild. If you cannot play, draw a card. Say Uno when you are down to one card, or draw 2 if you are caught.",
+      "The player who goes out scores the cards left in everyone else's hands: number cards at face value, Draw Two, Reverse and Skip 20 each, Wild and Wild Draw Four 50 each.",
+      "First to 500 wins."],
+    'Golf': [
+      "2 to 4 players with one 52-card deck. Add a second deck for 5 to 8. This is the 6-card version.",
+      "Deal 6 cards each, face down in two rows of three. Each player turns any two face up. Turn one card up to start the discard pile.",
+      "Draw from the stock or the discard pile and either swap it for one of your six cards or discard it. The hand ends when one player has all six face up. Many groups give everyone else one more turn.",
+      "Aces 1, 2s minus 2, 3 to 10 face value, jacks and queens 10, kings 0. Two equal cards in the same column cancel to 0.",
+      "Play 9 deals (holes). Lowest total wins."],
+    'Five Crowns': [
+      "1 to 7 players. The 116-card Five Crowns deck: two sets of five suits running 3 to king, plus 6 jokers.",
+      "Eleven rounds. Deal 3 cards each in the first round, 4 in the second, up to 13 in the last. The wild card changes each round to match the number dealt: 3s first, kings last. Jokers are always wild.",
+      "Draw, then discard. Go out by arranging your whole hand into books (same rank) and runs (same suit) with one discard left over. Everyone else then gets one more turn.",
+      "Score the cards you could not meld: 3 to 10 at face value, jacks 11, queens 12, kings 13, the round's wild card 20, jokers 50.",
+      "Lowest total after the kings round wins."],
+    'Mexican Train': [
+      "Best with 4 or more players. A double-twelve domino set (91 tiles), a hub and a marker for each player.",
+      "Shuffle face down. Draw 15 tiles each with up to 4 players, 12 each with 5 or 6, 10 each with 7 or 8, and 8 each with 9 or 10. The double twelve starts the first round in the hub, the double eleven the second, and so on down.",
+      "Build your own train out from the hub. If you cannot play, draw one tile. If you still cannot, put your marker on your train, which opens it to everyone. Anyone may play on the Mexican train. A double must be covered before play moves on.",
+      "When a player goes out, the others score the pips left in hand.",
+      "Lowest total after 13 rounds wins."],
+    'Farkle': [
+      "2 or more players and six dice.",
+      "No deal. Each player rolls one die and the highest goes first.",
+      "Roll all six dice and set aside at least one scoring die, then bank your points or roll the rest. A roll with nothing to score is a farkle and loses the turn's points. If all six dice score, roll them all again. Many groups require 500 in one turn to get on the board.",
+      "A single 1 is 100 and a single 5 is 50. Three 1s are 1,000. Three of any other number is 100 times that number. Four of a kind 1,000, five 2,000, six 3,000. A 1-to-6 straight or three pairs 1,500. Many sets add two triplets 2,500. Farkle has no single official rulebook, so check the card in your set.",
+      "When someone banks 10,000 or more, every other player gets one last turn. Highest total wins."],
+    'Scrabble': [
+      "2 to 4 players. A Scrabble board, 100 letter tiles and a rack each.",
+      "No deal. Each player draws one tile and the closest to A goes first (a blank beats any letter). Everyone then draws 7 tiles.",
+      "On your turn, play a word that connects to the tiles on the board, swap tiles, or pass. Draw back up to 7 after playing. The first word must cover the centre square.",
+      "Add the letter values of every word formed, applying premium squares only on the turn they are covered. Using all 7 tiles in one turn adds 50.",
+      "The game ends when the bag is empty and one player has used all their tiles, or when nobody can play. Subtract unplayed tiles from each score. The player who went out adds everyone else's. Highest total wins."],
+    'Yahtzee': [
+      "1 or more players, five dice and one score column each.",
+      "No deal. Roll to decide who goes first.",
+      "On your turn roll up to three times, keeping any dice between rolls. Then fill in exactly one category, even if it scores 0.",
+      "Ones to Sixes: the sum of that number. 3 and 4 of a kind: total of all dice. Full house 25, small straight 30, large straight 40, Yahtzee 50, Chance: total of all dice. Upper bonus 35 at 63 or more. Each extra Yahtzee is 100 if you already scored 50 in the Yahtzee box.",
+      "Highest total after all 13 categories are filled wins."],
+    'Biriba': [
+      "4 players in two partnerships (2 to 6 can play). Two 52-card decks plus 4 jokers (108 cards). Jokers and 2s are wild.",
+      "Deal 11 cards each. Set aside two more face-down packets of 11, the biribakia. Turn one card up to start the discard pile. In the full rules its suit becomes the bonus suit (kozi).",
+      "Draw from the stock or take the whole discard pile, meld, then discard. Melds are runs of 3 or more in one suit or sets of 3 or more of a rank, with at most one wild card each (many groups allow runs only). A meld of 7 or more is a biriba. Once your team has a biriba, the first of you to run out of cards picks up a biribaki. After that, a player goes out by discarding their last card.",
+      "Cards: joker 20, ace 15, 2s and 8 up to king 10, 3 to 7 are 5. Melded cards count for you and cards in hand against you. A biriba is 200 clean or 100 with a wild card, doubled in the bonus suit. A biriba of equal cards is 300 or 150. Going out 100. Not taking your biribaki costs 100.",
+      "Play to an agreed target, usually 5,000 (shorter games use 2,000 to 3,500). A team must pass the target to win."],
+    'Xeri': [
+      "2 players (4 can play in partnerships). Standard 52-card deck.",
+      "Deal 6 cards each and 4 face up in a pile on the table. Deal 6 more each whenever both hands are empty, until the deck runs out.",
+      "Play one card onto the pile each turn. If it matches the rank of the top card you capture the whole pile. A jack captures any pile. Capturing a pile of just one card by matching it is a xeri. Cards left at the end go to whoever captured last.",
+      "Most cards 3. Each ace, king, queen, jack and 10 is 1, with 1 extra for the 10 of diamonds. The 2 of clubs is 1. That makes 25 a deal. Each xeri adds 10, or 20 for a jack captured by a jack.",
+      "Commonly first to 151 at the end of a deal, or play an agreed number of deals."],
+    'Diloti': [
+      "2 players, or 4 in partnerships. Standard 52-card deck.",
+      "Deal 6 cards each and 4 face up on the table. Deal 6 more each whenever hands run out, until the deck is used.",
+      "Each turn play one card to capture, declare or lay. Capture a table card of the same value, or number cards that add up to it. Face cards capture only a matching face card. Declare by building a pile to a total you hold in your hand, to capture later. Clearing the whole table in one play is a xeri.",
+      "Most cards 4, each ace 1, the 10 of diamonds 2, the 2 of clubs 1. That makes 11 a deal. Each xeri adds 10.",
+      "First to 61 wins (121 for a longer game). If both pass it on the same deal, the higher score wins."],
+    'Tavli': [
+      "2 players. A backgammon board, 15 checkers each and two dice. Tavli is a match of three games played in rotation: Portes, Plakoto and Fevga.",
+      "No deal. Each player rolls one die and the higher roll starts the first game. After that the winner of each game starts the next.",
+      "Portes is standard backgammon without the doubling cube: single checkers can be hit and sent to the bar. In Plakoto a single checker is pinned in place instead of hit. In Fevga both players move in the same direction, there is no hitting, and one checker blocks a point.",
+      "A win is 1 point. A double win, where the loser has not borne off a single checker, is 2 points.",
+      "Play to 3, 5 or 7 points."]
+  };
+  RULES['Lost Cities'] = [
+    "2 players. 60 cards: five colours (yellow, blue, white, green, red), each with number cards 2 to 10 and 3 wager cards. Newer editions add a sixth colour, purple, used only in the long game with all 72 cards.",
+    "Shuffle and deal 8 cards each, face down. The rest form the draw pile. The oldest player starts the first round, and after that the player who scored more in the last round starts.",
+    "On your turn play one card, then draw one. Play it onto your own column of that colour, where each card must be higher than the last, or discard it face up onto that colour's discard pile. Wager cards go only at the start of a column, before any number card. Then draw the top card of the draw pile or of any discard pile, but not the card you just discarded. The round ends the moment the last card is drawn from the draw pile.",
+    "Score each expedition you started: add up its number cards and subtract 20. Multiply the result by 2, 3 or 4 for one, two or three wager cards. Then add 20 if the column has 8 or more cards; this bonus is not multiplied. An expedition you never started scores 0. Example from the rulebook: cards totalling 35 with two wagers score (35 minus 20) times 3, which is 45. A single wager card with no number cards scores minus 40.",
+    "Play three rounds and add up the scores. The higher total wins."];
+
+  function rulesFor(g) {
+    var keys = [g.rk, g.title], i;
+    for (i = 0; i < keys.length; i++) {
+      if (typeof keys[i] === 'string' && Object.prototype.hasOwnProperty.call(RULES, keys[i])) return RULES[keys[i]];
+    }
+    return null;
+  }
+  function rulesBtn(g) {
+    return rulesFor(g) ? '<button type="button" class="btn' + (ui.rulesOpen ? ' primary' : '') + '" data-act="rules" aria-expanded="' + (ui.rulesOpen ? 'true' : 'false') + '">Rules</button>' : '';
+  }
+  function rulesHTML(g) {
+    var r = rulesFor(g), out = '';
+    if (r && ui.rulesOpen) {
+      var t = Math.max(0, Math.min(ui.rulesTab || 0, TABS.length - 1));
+      out += '<div class="rules"><div class="tabs" role="tablist">' + TABS.map(function (n, i) {
+        return '<button type="button" role="tab" class="tab' + (i === t ? ' on' : '') + '" aria-selected="' + (i === t ? 'true' : 'false') + '" data-act="rtab" data-i="' + i + '">' + n + '</button>';
+      }).join('') + '</div><p role="tabpanel">' + esc(r[t] || '') + '</p></div>';
+    }
+    return out;
+  }
+
+  function persistTpl(id) {
+    if (mode === 'loading') { pendTpl.add(id); lsSet(LST, JSON.stringify(templates)); return; }
+    if (mode === 'shared' && db) {
+      var d = db.collection('templates').doc(id);
+      (templates[id] ? d.set(clone(templates[id])) : d.delete()).catch(function () {});
+    } else lsSet(LST, JSON.stringify(templates));
+  }
+  function saveTemplate(g) {
+    var id = Object.keys(templates).find(function (k) { return templates[k].name === g.title; }) || uid();
+    templates[id] = {
+      id: id, name: g.title, low: !!g.lowWins, note: g.note || '', noDealer: !!g.noDealer, calc: g.calc || '', rk: g.rk || '', dyn: g.dyn || '', head: g.head || '', cycle: g.cycle || [], createdAt: Date.now(),
+      cols: g.columns.map(function (c) { var t = { n: c.name, s: !!c.scored, a: !!c.auto }; if (typeof c.max === 'number') t.m = c.max; return t; }),
+      rows: g.fixed && !g.dyn ? g.rounds.map(function (r) { return { l: r.label || '', k: r.upper ? 'u' : (r.calc ? 'b' : ''), g: r.grp || '' }; }) : []
+    };
+    persistTpl(id);
+  }
+  function fromTemplate(t) {
+    return { name: t.name, low: t.low, note: t.note, noDealer: t.noDealer, calc: t.calc, rk: t.rk, dyn: t.dyn, head: t.head, cycle: Array.isArray(t.cycle) ? t.cycle : null,
+      cols: (t.cols || []).map(function (c) { return [c.n, c.s, c.a ? 'auto' : '', c.m]; }),
+      rows: t.rows && t.rows.length ? t.rows.map(function (r) { return [r.l, r.k, r.g]; }) : null };
+  }
+  function startPreset(i) {
+    var P = typeof i === 'number' ? PRESETS[i] : i, id = uid();
+    var g = normalize({ id: id, title: P.name, createdAt: Date.now(), players: [], rounds: [], lowWins: !!P.low, note: P.note,
+      columns: P.cols.map(function (c) { var col = { id: uid(), name: c[0], scored: !!c[1] }; if (c[2] === 'auto') col.auto = true; if (typeof c[3] === 'number' && c[3] >= 0) col.max = c[3]; return col; }) });
+    if (P.noDealer) g.noDealer = true;
+    if (rulesFor({ rk: P.rk || P.name })) g.rk = P.rk || P.name;
+    if (P.rows) {
+      g.fixed = true; g.calc = P.calc || '';
+      g.rounds = P.rows.map(function (row) {
+        var r = { id: uid(), dealer: '', s: {}, label: row[0] };
+        if (row[1] === 'u') r.upper = true;
+        if (row[1] === 'b') r.calc = 'upperBonus';
+        if (row[2]) r.grp = String(row[2]);
+        return r;
+      });
+    }
+    if (Array.isArray(P.cycle) && P.cycle.length) g.cycle = P.cycle.slice(0, 12);
+    if (P.head) g.head = String(P.head).slice(0, 12);
+    if (P.dyn) { g.dyn = P.dyn; g.fixed = true; syncRows(g); }
+    games[id] = g; touch(id, true); open(id);
+    var np = document.getElementById('new-player'); if (np) np.focus();
+  }
+
+  // Each score column is only as wide as its longest entry (or its total).
+  function sizeCells(g) {
+    g.players.forEach(function (p) {
+      g.columns.forEach(function (c) {
+        var els = app.querySelectorAll('.cell[data-p="' + p.id + '"][data-c="' + c.id + '"]');
+        var len = Math.max(2, fmt(colTotal(g, p.id, c.id)).length);
+        els.forEach(function (el) { len = Math.max(len, el.value.length); });
+        els.forEach(function (el) { el.style.width = 'calc(' + len + 'ch + 10px)'; });
+      });
+    });
+  }
+
+  // Light update while typing: refresh totals and labels without rebuilding inputs.
+  function refreshDerived(g) {
+    g.players.forEach(function (p) {
+      var run = runningTotals(g, p.id);
+      g.rounds.forEach(function (r, i) {
+        var el = app.querySelector('[data-rt="' + r.id + '|' + p.id + '"]'); if (el) el.textContent = fmt(run[i]);
+      });
+      g.columns.forEach(function (c) {
+        var el = app.querySelector('[data-ct="' + p.id + '|' + c.id + '"]'); if (el) el.textContent = footVal(g, p.id, c);
+      });
+      var f = app.querySelector('[data-ft="' + p.id + '"]'); if (f) f.textContent = fmt(total(g, p.id));
+      var h = app.querySelector('[data-pn="' + p.id + '"]'); if (h) h.textContent = p.name;
+    });
+    g.columns.forEach(function (c) {
+      app.querySelectorAll('[data-cn="' + c.id + '"]').forEach(function (el) { el.textContent = c.name; });
+    });
+    g.rounds.forEach(function (r, ri) {
+      if (!r.grp) return;
+      g.players.forEach(function (p) { var el = app.querySelector('[data-gs="' + r.id + '|' + p.id + '"]'); if (el) el.textContent = fmt(groupScore(g, ri, p.id)); });
+    });
+    var s = document.getElementById('standings'); if (s) s.innerHTML = standingsHTML(g);
+    sizeCells(g); updateHeadDealer(g);
+  }
+
+  /* ---------- winner fanfare ---------- */
+  var CUP = '<svg class="cup" viewBox="0 0 48 48" width="46" height="46" aria-hidden="true"><path fill="currentColor" d="M14 6h20v4h8v6a8 8 0 0 1-8.3 8A10 10 0 0 1 26 29.8V36h6v6H16v-6h6v-6.2A10 10 0 0 1 14.3 24 8 8 0 0 1 6 16v-6h8V6zm0 8h-4v2a4 4 0 0 0 4 4v-6zm20 0v6a4 4 0 0 0 4-4v-2h-4z"/></svg>';
+  var actx = null;
+  function fanfareSound() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = actx || new AC(); if (actx.state === 'suspended') actx.resume();
+      var t0 = actx.currentTime + 0.05;
+      var seq = [[523.25, 0, .14], [659.25, .15, .14], [783.99, .3, .14], [1046.5, .45, .28], [783.99, .45, .28], [659.25, .45, .28],
+        [1318.5, .78, .8], [1046.5, .78, .8], [783.99, .78, .8], [523.25, .78, .8]];
+      seq.forEach(function (n) {
+        var o = actx.createOscillator(), gn = actx.createGain();
+        o.type = 'triangle'; o.frequency.value = n[0];
+        gn.gain.setValueAtTime(0.0001, t0 + n[1]);
+        gn.gain.exponentialRampToValueAtTime(0.16, t0 + n[1] + 0.02);
+        gn.gain.exponentialRampToValueAtTime(0.0001, t0 + n[1] + n[2]);
+        o.connect(gn); gn.connect(actx.destination);
+        o.start(t0 + n[1]); o.stop(t0 + n[1] + n[2] + 0.05);
+      });
+    } catch (e) {}
+  }
+  function confetti() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    clearConfetti();
+    var c = document.createElement('canvas'); c.className = 'confetti';
+    var W = c.width = window.innerWidth, H = c.height = window.innerHeight; document.body.appendChild(c);
+    var x = c.getContext('2d'), colors = ['#f2c14e', '#e4572e', '#4fb286', '#3d7fe0', '#ffffff', '#b46fd6'], ps = [], i;
+    // Bursts start from the winner banner and fire on the beats of the fanfare: three lead-in notes, a chord, then the big final chord.
+    var el = document.querySelector('.over'), rc = el ? el.getBoundingClientRect() : null;
+    var cx = rc ? rc.left + rc.width / 2 : W / 2, cy = rc ? rc.top + rc.height / 2 : H * .35, bw = rc ? rc.width : W * .3;
+    i = 0;
+    function burst(n, power) {
+      var at = performance.now();
+      for (var k = 0; k < n; k++) ps.push({ x: cx + (Math.random() - .5) * bw * .8, y: cy, vx: (Math.random() - .5) * 14 * power, vy: (-Math.random() * 13 - 3) * power,
+        s: 5 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: colors[(i++) % colors.length], b: at });
+    }
+    [[550, 10, .55], [700, 10, .65], [850, 10, .75], [1000, 40, .9], [1330, 120, 1.15]].forEach(function (s) {
+      setTimeout(function () { burst(s[1], s[2]); }, s[0]);
+    });
+    var began = performance.now();
+    (function frame(now) {
+      var t = now - began; x.clearRect(0, 0, W, H);
+      ps.forEach(function (p) {
+        p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.globalAlpha = Math.max(0, 1 - (now - p.b) / 2800); x.fillStyle = p.c;
+        x.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .66); x.restore();
+      });
+      if (t < 4400) requestAnimationFrame(frame); else c.remove();
+    })(began);
+  }
+  function clearConfetti() { document.querySelectorAll('canvas.confetti').forEach(function (old) { old.remove(); }); }
+  function celebrate() { fanfareSound(); confetti(); }
+
+  /* ---------- events ---------- */
+  function cur() { return currentId ? games[currentId] : null; }
+  function open(id) { clearConfetti(); currentId = id; ui.focusRow = null; ui.rulesOpen = false; ui.rulesTab = 0; ui.tplSaved = null; ui.showTable = false; ui.setupOpen = null; ui.armed = null; lsSet(LSCUR, id || ''); render(); window.scrollTo(0, 0); }
+
+  function confirmed(key) {
+    var g = cur(), parts = key.split(':'), kind = parts[0], id = parts[1];
+    if (kind === 'game') { removeGame(id); open(null); return; }
+    if (kind === 'tpl') { delete templates[id]; persistTpl(id); render(); return; }
+    if (!g) return;
+    if (kind === 'round') g.rounds = g.rounds.filter(function (r) { return r.id !== id; });
+    if (kind === 'player') {
+      g.players = g.players.filter(function (p) { return p.id !== id; });
+      g.rounds.forEach(function (r) { delete r.s[id]; if (r.dealer === id) r.dealer = ''; });
+      syncRows(g);
+    }
+    if (kind === 'col') {
+      g.columns = g.columns.filter(function (c) { return c.id !== id; });
+      g.rounds.forEach(function (r) { Object.keys(r.s).forEach(function (pid) { delete r.s[pid][id]; }); });
+    }
+    touch(g.id); render();
+  }
+
+  app.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) { if (ui.armed) { ui.armed = null; render(); } return; }
+    var act = b.dataset.act, g = cur();
+    if (act === 'arm') {
+      var key = b.dataset.key;
+      if (ui.armed === key) { ui.armed = null; confirmed(key); }
+      else { ui.armed = key; render(); }
+      return;
+    }
+    if (ui.armed) ui.armed = null;
+    if (act === 'open') return open(b.dataset.id);
+    if (act === 'home') { if (g && isUnused(g)) removeGame(g.id); return open(null); }
+    if (act === 'preset') return startPreset(+b.dataset.i);
+    if (act === 'allgames') { ui.allOpen = !ui.allOpen; render(); return; }
+    if (act === 'lbopen') { ui.lbOpen = ui.lbOpen === b.dataset.key ? null : b.dataset.key; render(); return; }
+    if (act === 'askclear') { ui.modal = 'clear'; render(); return; }
+    if (act === 'cancelmodal') { ui.modal = null; render(); return; }
+    if (act === 'export') { ui.modal = 'export'; ui.ioNote = ''; render(); return; }
+    if (act === 'import') { ui.modal = 'import'; ui.impText = ''; ui.ioNote = ''; render(); return; }
+    if (act === 'copyexport') {
+      var ta = document.getElementById('exp-text'), done = function (msg) { ui.ioNote = msg; var n = document.getElementById('io-note'); if (n) n.textContent = msg; };
+      var pick = function () { if (ta) { ta.focus(); ta.select(); } done('Copying is blocked here. The text is selected, so copy it yourself.'); };
+      try { navigator.clipboard.writeText(exportText()).then(function () { done('Copied. Paste it into Import on the other device.'); }, pick); } catch (err) { pick(); }
+      return;
+    }
+    if (act === 'savefile') {
+      if (!dlNS) return;
+      var note = function (msg) { ui.ioNote = msg; var n = document.getElementById('io-note'); if (n) n.textContent = msg; };
+      dlNS.save({ filename: 'score-pad-' + new Date().toISOString().slice(0, 10) + '.json', data: exportText() }).then(function () { note('Saved. Open Import on the other device and choose that file.'); },
+        function (err) { note(err && err.code === 'declined' ? 'Not saved.' : 'This device could not save the file. Use Copy text instead.'); });
+      return;
+    }
+    if (act === 'doimport') {
+      var src = document.getElementById('imp-text'), parsed = parseImport(src ? src.value : ui.impText);
+      if (parsed.error) { ui.ioNote = parsed.error; var en = document.getElementById('io-note'); if (en) en.textContent = parsed.error; return; }
+      var res = applyImport(parsed), parts = [];
+      parts.push('Imported ' + (res.added + res.updated) + (res.added + res.updated === 1 ? ' game' : ' games') + ' and ' + res.tpl + (res.tpl === 1 ? ' template' : ' templates') + '.');
+      if (res.updated) parts.push(res.updated + (res.updated === 1 ? ' was' : ' were') + ' newer than the copy on this device and replaced it.');
+      if (res.same) parts.push(res.same + (res.same === 1 ? ' was' : ' were') + ' already here and left alone.');
+      ui.modal = 'imported'; ui.ioNote = parts.join(' '); ui.impText = ''; render(); return;
+    }
+    if (act === 'clearall') { Object.keys(games).forEach(removeGame); ui.modal = null; render(); return; }
+    if (act === 'tpl') { if (templates[b.dataset.id]) startPreset(fromTemplate(templates[b.dataset.id])); return; }
+    if (!g) return;
+    if (act === 'rules') { ui.rulesOpen = !ui.rulesOpen; render(); return; }
+    if (act === 'rtab') { ui.rulesTab = +b.dataset.i || 0; render(); return; }
+    if (act === 'savetpl') { saveTemplate(g); ui.tplSaved = g.id; render(); return; }
+    if (act === 'toggletable') { ui.showTable = !ui.showTable; render(); return; }
+    if (act === 'over' || act === 'reopen') {
+      ui.showTable = false;
+      g.over = act === 'over'; if (g.over) g.endedAt = Date.now(); touch(g.id); ui.fanfare = g.over; render(); ui.fanfare = false; window.scrollTo(0, 0);
+      if (g.over && g.players.length) celebrate();
+      return;
+    }
+    if (act === 'deal') {
+      if (g.noDealer) return;
+      if (g.fixed) {
+        var np = g.players.length, pi = g.players.findIndex(function (x) { return x.id === b.dataset.id; }), cr = activeRow(g) >= 0 ? activeRow(g) : Math.max(0, currentRow(g));
+        if (pi >= 0) g.firstDealer = g.players[((pi - cr) % np + np) % np].id;
+      } else {
+        var lr = activeRow(g) >= 0 ? g.rounds[activeRow(g)] : g.rounds[g.rounds.length - 1];
+        if (lr) lr.dealer = b.dataset.id; else g.firstDealer = b.dataset.id;
+      }
+      touch(g.id); render(); return;
+    }
+    if (act === 'addround') {
+      if (seatInfo(g).msg) return;
+      var r = { id: uid(), dealer: nextDealer(g), s: {} };
+      g.rounds.push(r); touch(g.id); render();
+      var first = document.getElementById('c-' + r.id + '-' + g.players[0].id + '-' + g.columns[0].id);
+      if (first) { first.focus(); first.scrollIntoView({ block: 'nearest' }); }
+      return;
+    }
+    if (act === 'flip') {
+      var el = ui.lastCell && document.getElementById(ui.lastCell);
+      if (!el) return;
+      var v = parseScore(el.value);
+      if (isNaN(v)) { el.value = '-'; el.focus(); return; }
+      el.value = fmt(-v); writeCell(g, el); el.focus();
+    }
+  });
+
+  /* ---------- entry limits taken from each game's rules ---------- */
+  var YZMAX = Object.create(null);
+  [['Ones', 5], ['Twos', 10], ['Threes', 15], ['Fours', 20], ['Fives', 25], ['Sixes', 30], ['3 of a kind', 30], ['4 of a kind', 30], ['Full house', 25],
+    ['Sm. straight', 30], ['Lg. straight', 40], ['Yahtzee', 50], ['Chance', 30], ['Yahtzee bonus', 1200]].forEach(function (x) { YZMAX[x[0]] = x[1]; });
+  function presetOf(g) { var i = typeof g.rk === 'string' ? presetIndex(g.rk) : -1; return i < 0 ? null : PRESETS[i]; }
+  // The allowed range for one cell, or null for no limit. Limits apply only while the game still has its original columns.
+  function limitFor(g, ri, ci) {
+    var col = g.columns[ci], r = g.rounds[ri];
+    if (!col || !r || col.auto || r.calc) return null;
+    var P = presetOf(g), pc = P && P.cols.length === g.columns.length ? P.cols[ci] : null, out = null, n;
+    var mx = pc && typeof pc[3] === 'number' ? pc[3] : (typeof col.max === 'number' ? col.max : null);
+    var mn = pc && typeof pc[4] === 'number' ? pc[4] : (mx != null ? 0 : null);
+    if (mx != null || mn != null) out = { min: mn, max: mx };
+    var kind = pc ? P.lim : null;
+    if (kind === 'yahtzee' && ci === 0 && typeof YZMAX[r.label] === 'number') out = { min: 0, max: YZMAX[r.label] };
+    if (kind === 'wizard') { n = ri + 1; out = ci < 2 ? { min: 0, max: n } : { min: -10 * n, max: 20 + 10 * n }; }
+    if (kind === 'fivecrowns' && ci === 0) { n = ri + 3; out = { min: 0, max: Math.min(n, 6) * 50 + Math.max(0, n - 6) * 20 }; }
+    return out;
+  }
+  function limitName(g, ri, ci) {
+    var P = presetOf(g), r = g.rounds[ri];
+    return P && P.lim === 'yahtzee' && r && r.label ? r.label : g.columns[ci].name;
+  }
+  // A limited cell takes whole numbers inside its range. Blank or unfinished text is always allowed.
+  function cellAllowed(lim, v) {
+    if (!lim || isNaN(v)) return true;
+    if (v !== Math.floor(v)) return false;
+    if (lim.min != null && v < lim.min) return false;
+    if (lim.max != null && v > lim.max) return false;
+    return true;
+  }
+  var hintTimer = null;
+  function rejectCell(el, name, lim) {
+    el.value = el.dataset.prev || '';
+    el.classList.add('bad');
+    setTimeout(function () { el.classList.remove('bad'); }, 700);
+    var h = document.getElementById('cellhint');
+    if (h) {
+      h.textContent = name + (lim.max == null ? ' must be a whole number, ' + lim.min + ' or more.' : lim.min == null ? ' must be a whole number, ' + lim.max + ' or less.' : ' must be a whole number from ' + lim.min + ' to ' + lim.max + '.');
+      h.hidden = false;
+      clearTimeout(hintTimer); hintTimer = setTimeout(function () { h.hidden = true; }, 3500);
+    }
+  }
+  function writeCell(g, el) {
+    var r = g.rounds.find(function (x) { return x.id === el.dataset.r; }); if (!r) return;
+    if (seatInfo(g).msg) return;
+    var v = parseScore(el.value);
+    var ci = g.columns.findIndex(function (c) { return c.id === el.dataset.c; }), ri = g.rounds.indexOf(r), lim = ci < 0 ? null : limitFor(g, ri, ci);
+    if (!cellAllowed(lim, v)) { rejectCell(el, limitName(g, ri, ci), lim); return; }
+    el.dataset.prev = el.value;
+    if (!r.s[el.dataset.p]) r.s[el.dataset.p] = {};
+    if (isNaN(v)) delete r.s[el.dataset.p][el.dataset.c]; else r.s[el.dataset.p][el.dataset.c] = v;
+    applyCalc(g);
+    touch(g.id); refreshDerived(g);
+  }
+
+  app.addEventListener('focusin', function (e) {
+    if (e.target.classList && e.target.classList.contains('cell') && !e.target.closest('.finaltable')) {
+      ui.lastCell = e.target.id; ui.focusRow = e.target.dataset.r; e.target.dataset.prev = e.target.value;
+      var fg = cur(); if (fg) updateHeadDealer(fg);
+    }
+  });
+
+  app.addEventListener('input', function (e) {
+    var t = e.target, g = cur();
+    if (!g) return;
+    if (t.classList.contains('cell')) return writeCell(g, t);
+    if (t.id === 'title') { g.title = titleCase(t.value) || 'Untitled Game'; touch(g.id); return; }
+    if (t.dataset.pname) {
+      var p = g.players.find(function (x) { return x.id === t.dataset.pname; });
+      if (p) { p.name = t.value.trim() || 'Player'; touch(g.id); refreshDerived(g); }
+      return;
+    }
+    if (t.dataset.cname) {
+      var c = g.columns.find(function (x) { return x.id === t.dataset.cname; });
+      if (c) { c.name = t.value.trim() || 'Column'; touch(g.id); refreshDerived(g); }
+    }
+  });
+
+  app.addEventListener('change', function (e) {
+    var t = e.target, g = cur();
+    if (!g) return;
+    if (t.id === 'title') { t.value = g.title; return; }
+    if (t.dataset.dealer) {
+      var r = g.rounds.find(function (x) { return x.id === t.dataset.dealer; });
+      if (r) { r.dealer = t.value; touch(g.id); render(); }
+      return;
+    }
+    if (t.dataset.cscored) {
+      var c = g.columns.find(function (x) { return x.id === t.dataset.cscored; });
+      if (c) { c.scored = t.checked; touch(g.id); render(); }
+      return;
+    }
+    if (t.dataset.lowwins) { g.lowWins = t.checked; touch(g.id); render(); return; }
+    if (t.dataset.pname || t.dataset.cname) render(); // refresh dealer menus and labels after a rename
+  });
+
+  app.addEventListener('change', function (e) {
+    if (e.target.id === 'imp-file' && e.target.files && e.target.files[0]) {
+      var file = e.target.files[0], show = function (msg) { ui.ioNote = msg; var n = document.getElementById('io-note'); if (n) n.textContent = msg; };
+      if (file.size > 8000000) { show('That file is too large to be a Score Pad export.'); return; }
+      var fr = new FileReader();
+      fr.onload = function () { ui.impText = String(fr.result || ''); var t = document.getElementById('imp-text'); if (t) t.value = ui.impText; show('File loaded. Tap Import to add it.'); };
+      fr.onerror = function () { show('That file could not be read.'); };
+      fr.readAsText(file);
+    }
+    if (e.target.id === 'lb-filter') { ui.lbFilter = e.target.value; ui.lbOpen = null; render(); }
+    if (e.target.id === 'game-pick') {
+      var v = e.target.value; e.target.value = '';
+      if (v.slice(0, 2) === 'p:' && PRESETS[+v.slice(2)]) startPreset(+v.slice(2));
+      else if (v.slice(0, 2) === 't:' && Object.prototype.hasOwnProperty.call(templates, v.slice(2))) startPreset(fromTemplate(templates[v.slice(2)]));
+    }
+  });
+  // Typing in the title box filters the game list without rebuilding the box itself.
+  app.addEventListener('input', function (e) {
+    if (e.target.id === 'imp-text') { ui.impText = e.target.value; return; }
+    if (e.target.id !== 'new-title' || currentId) return;
+    var el = document.getElementById('picks');
+    if (el) el.innerHTML = picksHTML(historyList(), e.target.value);
+  });
+
+  app.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('cell')) {
+      var cells = Array.prototype.slice.call(app.querySelectorAll('.cell'));
+      var i = cells.indexOf(e.target);
+      if (cells[i + 1]) { e.preventDefault(); cells[i + 1].focus(); cells[i + 1].select(); }
+    }
+  });
+
+  app.addEventListener('toggle', function (e) {
+    if (e.target.id === 'setup') ui.setupOpen = e.target.open;
+  }, true);
+
+  app.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target, g = cur(), v;
+    if (f.id === 'newgame') {
+      v = document.getElementById('new-title').value.trim();
+      var id = uid();
+      games[id] = normalize({ id: id, title: titleCase(v) || 'Untitled Game', createdAt: Date.now(), players: [], rounds: [] });
+      touch(id, true); open(id);
+      var np = document.getElementById('new-player'); if (np) np.focus();
+      return;
+    }
+    if (!g) return;
+    if (f.id === 'addplayer') {
+      if (seatInfo(g).max != null && g.players.length >= seatInfo(g).max) return;
+      v = document.getElementById('new-player').value.trim();
+      g.players.push({ id: uid(), name: v || 'Player ' + (g.players.length + 1) });
+      syncRows(g);
+      ui.setupOpen = true; touch(g.id); render();
+      var el = document.getElementById('new-player'); if (el) { el.value = ''; el.focus(); }
+      return;
+    }
+    if (f.id === 'addcol') {
+      v = document.getElementById('new-col').value.trim();
+      if (!v) return;
+      g.columns.push({ id: uid(), name: v, scored: false });
+      ui.setupOpen = true; touch(g.id); render();
+      var el2 = document.getElementById('new-col'); if (el2) { el2.value = ''; el2.focus(); }
+    }
+  });
+
+  /* ---------- storage start-up ---------- */
+  function merge(snap) {
+    var next = {};
+    snap.docs.forEach(function (d) {
+      if (dirty.has(d.id) || saving.has(d.id)) return;
+      var g = normalize(clone(d.data() || {})); g.id = d.id; next[d.id] = g;
+    });
+    Object.keys(games).forEach(function (id) {
+      if (dirty.has(id) || saving.has(id)) next[id] = games[id];
+    });
+    var changed = JSON.stringify(next) !== JSON.stringify(games);
+    games = next;
+    return changed;
+  }
+
+  function start() {
+    try { templates = JSON.parse(lsGet(LST) || '{}') || {}; } catch (e) { templates = {}; }
+    render();
+    if (!(window.claude && window.claude.use)) {
+      // Running as an ordinary web page (for example on GitHub Pages): save files with a normal browser download.
+      dlNS = { save: function (req) {
+        try {
+          var url = URL.createObjectURL(new Blob([req.data], { type: 'application/json' })), a = document.createElement('a');
+          a.href = url; a.download = req.filename; document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+          return Promise.resolve({ status: 'saved' });
+        } catch (e) { return Promise.reject({ code: 'unavailable', message: String(e) }); }
+      } };
+    }
+    if (window.claude && window.claude.use) {
+      Promise.resolve(window.claude.use('downloads')).then(function (ns) { dlNS = ns && typeof ns.save === 'function' ? ns : null; if (dlNS && ui.modal === 'export') render(); }, function () {});
+    }
+    var use = window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null);
+    Promise.resolve(use).catch(function () { return null; }).then(function (d) {
+      if (!d) {
+        mode = 'local';
+        var local = loadLocal(); Object.keys(local).forEach(function (k) { if (!games[k]) games[k] = local[k]; });
+        dirty.clear(); saveLocal();
+        restore(); return;
+      }
+      db = d;
+      db.collection('templates').onSnapshot(function (snap) {
+        var n = {};
+        snap.docs.forEach(function (doc) { var t = doc.data(); if (t) { t = clone(t); t.id = doc.id; n[doc.id] = t; } });
+        pendTpl.forEach(function (k) { if (templates[k]) n[k] = templates[k]; else delete n[k]; });
+        templates = n;
+        if (!currentId) render();
+      }, function () {});
+      var first = true;
+      var timer = setTimeout(function () { slow = true; setStatus(); }, 10000);
+      db.collection('games').onSnapshot(function (snap) {
+        if (!snap.metadata.fromCache) { clearTimeout(timer); slow = false; }
+        var wasLoading = mode === 'loading';
+        mode = 'shared';
+        var changed = merge(snap);
+        if (wasLoading) {
+          Array.from(dirty).forEach(flush);
+          Array.from(pendTpl).forEach(function (k) { pendTpl.delete(k); persistTpl(k); });
+        }
+        if (first) { first = false; restore(); }
+        else if (changed || wasLoading) render(); else setStatus();
+      }, function () {
+        clearTimeout(timer); slow = false; mode = 'local';
+        var local = loadLocal(); Object.keys(local).forEach(function (k) { if (!games[k]) games[k] = local[k]; });
+        dirty.clear(); saveLocal();
+        render();
+      });
+    });
+  }
+  function restore() {
+    var last = lsGet(LSCUR);
+    if (!currentId && last && games[last]) currentId = last;
+    pruneUnused();
+    render();
+  }
+  start();
+})();
+</script>
+<script>
+// Offline support: works from the home screen without a connection once it has been opened online.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
