@@ -90,7 +90,9 @@ button { cursor: pointer; }
 .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--muted); }
 
 /* Game view */
-.top { display: flex; gap: 8px; align-items: center; }
+.top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.ttl { display: flex; align-items: center; gap: 8px; }
+.ttl .title { padding: 4px 6px; margin-left: -2px; }
 .title {
   flex: 1; min-width: 0; font-family: var(--display); font-weight: 700; font-size: 22px;
   border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 8px;
@@ -259,7 +261,9 @@ html.playing, html.playing body { overflow: hidden; }
   max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
   padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
 }
-.ptop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-left: -8px; }
+.ptop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ptop .ptools { display: contents; }
+.ptop .psub { margin-left: auto; font-size: 12px; }
 .psub { font-size: 13px; color: var(--muted); text-align: right; }
 .ph1 { font-size: 22px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
 .pstands { display: flex; gap: 8px; }
@@ -458,8 +462,6 @@ button.die { cursor: pointer; }
 .uc1 { background: #e7b416 !important; } .uc3 { background: #2a6fd1 !important; }
 .pcw, .ucw { background: conic-gradient(#d23b32 0 25%, #e7b416 0 50%, #2b9a4b 0 75%, #2a6fd1 0) !important; }
 .pck { background: #333 !important; }
-.lc0, .lc0b { background: #e3b725 !important; } .lc1, .lc1b { background: #2f6fc0 !important; } .lc2, .lc2b { background: #b8b8b8 !important; }
-.lc3, .lc3b { background: #3d9a50 !important; } .lc4, .lc4b { background: #cc3b33 !important; } .lc5, .lc5b { background: #7d4bb3 !important; }
 .ucolor { font-size: 12px; font-weight: 600; color: #fff; padding: 2px 8px; border-radius: 99px; }
 .ucb { color: #fff; border: 0; min-height: 44px; flex: 1; text-transform: capitalize; }
 .dirn { font-size: 24px; color: var(--muted); align-self: center; }
@@ -502,15 +504,30 @@ button.pilebtn:not(:disabled) span:last-child { color: var(--accent); font-weigh
 .ycats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
 .ycats .btn { display: flex; justify-content: space-between; min-height: 40px; }
 .ycats .btn.zero { color: var(--muted); }
-.lcrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
-.lccol { min-height: 64px; border-radius: 8px; padding: 3px; display: flex; flex-direction: column; align-items: center; gap: 0; opacity: .95; border: 0; }
-.lccol .card.mini { width: 30px; height: 26px; padding: 0; overflow: hidden; }
-.lccol .card.mini + .card.mini { margin-top: -12px; }
-.lccol .card.mini .cr { font-size: 13px; }
-.lcsc { font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, .4); margin-top: auto; }
-.discs .lccol { min-height: 44px; }
-.discs .lccol:not(:disabled) { cursor: pointer; box-shadow: 0 0 0 3px var(--ink); }
 .dtable { min-height: 74px; align-items: center; }
+/* Lost Cities: muted expedition colours, solid at the edge and fading to near white inside */
+.lc0, .lc0b { --lcb: #b39545; --lcl: #f1e6c4; --lcd: #6b5820; } .lc1, .lc1b { --lcb: #50709a; --lcl: #dbe4ef; --lcd: #2a4566; }
+.lc2, .lc2b { --lcb: #8f969c; --lcl: #eef0f2; --lcd: #4a5056; } .lc3, .lc3b { --lcb: #5f8763; --lcl: #dfeadf; --lcd: #2f5134; }
+.lc4, .lc4b { --lcb: #a65d55; --lcl: #f2dedb; --lcd: #66302a; }
+.card.lcc { background: radial-gradient(ellipse 70% 60% at 50% 52%, #fff 0 30%, var(--lcl) 62%, var(--lcb) 100%); border: 2px solid var(--lcb); color: var(--lcd); padding: 3px 5px; justify-content: flex-start; text-shadow: none; }
+.card.lcc .cr { font-size: 16px; line-height: 1; margin: 0; }
+.card.lcc .cs { display: block; align-self: center; margin-top: 4px; font-size: 24px; opacity: .45; }
+.lcview { display: flex; flex-direction: column; gap: 8px; }
+.lcrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.lcrow.discs { align-items: center; }
+.lchead { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.lccol { border-radius: 10px; padding: 4px 0 2px; display: flex; flex-direction: column; align-items: center; border: 0; background: color-mix(in srgb, var(--lcl) 70%, var(--bg)); min-height: 80px; }
+.lcrow.exp .lccol .card + .card { margin-top: -50px; }
+.card.lcc.under .cs { visibility: hidden; }
+.card.lcc .hs { width: 1.05em; height: 1.05em; display: block; }
+.card.lcc .cs .hs { width: 30px; height: 30px; opacity: 1.4; }
+.lcsc { font-size: 11px; font-weight: 700; color: var(--lcd); margin-top: 2px; min-height: 14px; }
+.discs .lccol { min-height: 78px; justify-content: center; padding: 4px 0; }
+.discs .lccol:not(:disabled), .lcdeck:not(:disabled) { cursor: pointer; }
+.discs .lccol.cantake, .lcdeck.cantake { box-shadow: 0 0 0 3px var(--accent); }
+.lcempty { width: 48px; height: 70px; border: 2px dashed var(--lcb); border-radius: 7px; opacity: .5; }
+.lcdeck { display: flex; flex-direction: row; align-items: center; gap: 6px; background: none; border: 0; border-radius: 10px; padding: 4px 6px; font-size: 12px; line-height: 1.2; color: var(--muted); text-align: left; flex: none; }
+.lcdeck .card.back { width: 38px; height: 54px; }
 .card.kj { background: #fff6e0; border-color: #c99a2e; box-shadow: inset 0 0 0 2px #e8c25a; }
 .card.kj .cs { color: #b8860b; }
 .kkch { flex-direction: column; }
@@ -578,7 +595,6 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
 .lb td.chc { font-weight: 600; } .lb td.chc.neg { color: var(--danger); }
 .dbuild { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--surface); border: 1px dashed var(--accent); border-radius: 8px; padding: 4px 6px; }
 .card.mini .cr, .card.mini .cs { display: none; }
-.lccol .card.mini .cr, .ggrid .card.mini .cr { display: flex; }
 .ggrid .card.mini { width: 22px; height: 30px; padding: 1px 2px; }
 .ggrid .card.mini .cr { font-size: 10px; } .ggrid .card.mini .cr small { display: none; }
 @media (max-width: 380px) { .ggrid button.card { width: 50px; height: 70px; } .mcards .card { width: 34px; } }
@@ -1288,8 +1304,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function renderGame(g) {
     if (g.over) {
       app.innerHTML =
-        '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' +
-        iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title"></div>' + vsBarHTML(g) +
+        '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px"></div>' +
+        '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button></div>' + vsBarHTML(g) +
         '<div class="over' + (ui.fanfare ? ' pop' : '') + '">' + CUP + '<div><p>Game over · ' + (g.fixed ? 'final sheet' : g.rounds.length + (g.rounds.length === 1 ? ' round' : ' rounds')) + '</p><h1>' + esc(winnerText(g)) + '</h1></div></div>' +
         '<h2>Final scores</h2><div class="standings" id="standings">' + standingsHTML(g) + '</div>' + (gameName(g) === 'Koum Kan' ? '<div id="kkpanel">' + kkPanelHTML(g) + '</div>' : '') + chipPanelHTML(g) +
         '<div class="actions"><button type="button" class="btn" data-act="toggletable">' + (ui.showTable ? 'Hide full table' : 'Show full table') + '</button>' +
@@ -1302,8 +1318,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return;
     }
     app.innerHTML =
-      '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' +
-      iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title">' + rulesBtn(g) + '</div>' + vsBarHTML(g) +
+      '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px"></div>' +
+      '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' + rulesBtn(g) + '</div>' + vsBarHTML(g) +
       rulesHTML(g) +
       '<div class="standings" id="standings">' + standingsHTML(g) + '</div>' + (gameName(g) === 'Koum Kan' ? '<div id="kkpanel">' + kkPanelHTML(g) + '</div>' : '') + '<div id="chpanel">' + chipPanelHTML(g) + '</div>' + '<div id="gpanel">' + gamePanelHTML(g) + '</div>' + '<div id="dealnext">' + dealNextHTML(g) + '</div>' +
       sheetHTML(g) + actionsHTML(g) + toolsHTML(g) + setupHTML(g) +
@@ -1409,7 +1425,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   (function () {
     var rows = [];
     [1, 2, 3].forEach(function (n) {
-      ['Yellow', 'Blue', 'White', 'Green', 'Red', 'Purple'].forEach(function (colour, i) { rows.push([colour, '', i === 0 ? 'Round ' + n : '']); });
+      ['Yellow', 'Blue', 'White', 'Green', 'Red'].forEach(function (colour, i) { rows.push([colour, '', i === 0 ? 'Round ' + n : '']); });
     });
     PRESETS.push({ name: 'Lost Cities', need: [2, 2], noDealer: true, head: 'Color', calc: 'lostcities',
       // Largest possible entries: nine number cards 2 to 10 total 54; 3 wager cards; 12 cards in a column. Best score: (54 - 20) x 4 + 20 = 156.
@@ -1644,6 +1660,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     }
     return null;
   }
+  function titleSize(t) { var n = String(t || '').length; return n <= 13 ? 26 : n <= 17 ? 22 : n <= 22 ? 19 : 16; }
   function rulesBtn(g) {
     return rulesFor(g) ? '<button type="button" class="btn' + (ui.rulesOpen ? ' primary' : '') + '" data-act="rules" aria-expanded="' + (ui.rulesOpen ? 'true' : 'false') + '">Rules</button>' : '';
   }
@@ -1983,7 +2000,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     var t = e.target, g = cur();
     if (!g) return;
     if (t.classList.contains('cell')) return writeCell(g, t);
-    if (t.id === 'title') { g.title = titleCase(t.value) || 'Untitled Game'; touch(g.id); return; }
+    if (t.id === 'title') { g.title = titleCase(t.value) || 'Untitled Game'; t.style.fontSize = titleSize(t.value) + 'px'; touch(g.id); return; }
     if (t.dataset.pname) {
       var p = g.players.find(function (x) { return x.id === t.dataset.pname; });
       if (p) { p.name = t.value.trim() || 'Player'; touch(g.id); refreshDerived(g); }
@@ -2763,9 +2780,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       (VSK[PL.kind].gm && PL.undo && PL.undo.length && mine ? '<button type="button" class="btn small" data-pa="gmundo">Undo</button>' : '') + '</div>';
     var rules = R && PL.rulesOpen ? '<div class="rules prules"><div class="tabs" role="tablist">' + TABS.map(function (n, i) { var on = i === (PL.rulesTab || 0); return '<button type="button" role="tab" class="tab' + (on ? ' on' : '') + '" aria-selected="' + on + '" data-pa="prtab" data-i="' + i + '">' + n + '</button>'; }).join('') + '</div><p role="tabpanel">' + esc(R[PL.rulesTab || 0] || '') + '</p></div>' : '';
     PL.el.innerHTML = '<div class="pwrap">' +
-      '<div class="ptop"><button type="button" class="btn ghost" data-pa="leave">← Score sheet</button>' +
-      '<span class="psub">' + (K.sub ? esc(K.sub(g)) + ' · ' : g.vs.target ? 'Playing to ' + commas(g.vs.target) + (K.tunit || '') + ' · ' : '') + (g.vs.level === 'easy' ? 'Easy' : 'Hard') + '</span></div>' +
-      '<h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + esc(PL.title || K.name) + '</h1>' + tools + rules +
+      '<h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + '<span>' + esc(PL.title || K.name) + '</span></h1>' +
+      '<div class="ptop"><button type="button" class="btn small" data-pa="leave">← Sheet</button>' + tools +
+      '<span class="psub">' + (K.sub ? esc(K.sub(g)) + ' · ' : g.vs.target ? 'To ' + commas(g.vs.target) + (K.tunit || '') + ' · ' : '') + (g.vs.level === 'easy' ? 'Easy' : 'Hard') + '</span></div>' + rules +
       body + '</div>';
     PL.rolled = false;
     var key = PL.st || PL.T || PL.kind;
@@ -5593,28 +5610,31 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   };
 
   /* ---------- Lost Cities ---------- */
-  var LCN = ['yellow', 'blue', 'white', 'green', 'red', 'purple'];
-  function lcCard(col, v) { return mkCard(v, col, { face: v ? String(v) : '\u2715', sym: '', cls: 'pc lc' + col, label: LCN[col] + ' ' + (v ? v : 'wager') }); }
+  var LCN = ['yellow', 'blue', 'white', 'green', 'red'];
+  // Wager cards: a line-drawn handshake in the card's own colour.
+  var HANDSHAKE = '<svg class="hs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h3.2M1.5 15h3.2M22.5 8h-3.2M22.5 15h-3.2M4.7 8.2l2.3-1.3h2.6M4.7 8.2v6.4M19.3 8.2v7"/><path d="M19.3 8.2l-3.6-1.9c-.9-.4-1.9-.3-2.7.2l-3.4 2.6a1.3 1.3 0 0 0 1.6 2l2.6-1.7 1 .3 4.5 4.6"/><path d="M4.7 14.6l3.6 3.4a1.3 1.3 0 0 0 1.9-1.8M10.2 16.2l1.3 1.2a1.3 1.3 0 0 0 1.9-1.8l-1.2-1.1M12.2 14.5l1.3 1.2a1.3 1.3 0 0 0 1.9-1.8l-1.6-1.5M14 12.6l1.2 1.2a1.3 1.3 0 0 0 1.9-1.8"/></svg>';
+  function lcCard(col, v) { return mkCard(v, col, { face: v ? String(v) : HANDSHAKE, sym: v ? String(v) : HANDSHAKE, cls: 'lcc lc' + col, label: LCN[col] + ' ' + (v ? v : 'wager') }); }
   function lcScore(cards) { if (!cards.length) return null; var w = cards.filter(function (c) { return !c.r; }).length, s = sum(cards, function (c) { return c.r; }); return (s - 20) * (1 + w) + (cards.length >= 8 ? 20 : 0); }
   var LC = GMS.lostcities = {
-    help: 'Start expeditions in six colours by playing cards in rising order; wager cards (✕) go first and multiply the result. Each turn play or discard one card, then draw from the deck or the top of any discard pile. When the deck runs out the round ends. Each started expedition scores its cards minus 20, multiplied by one plus the wagers, with 20 extra for eight or more cards. Three rounds.',
     deal: function (ctx) {
-      var d = []; for (var c = 0; c < 6; c++) { for (var w = 0; w < 3; w++) d.push(lcCard(c, 0)); for (var v = 2; v <= 10; v++) d.push(lcCard(c, v)); }
+      var d = []; for (var c = 0; c < 5; c++) { for (var w = 0; w < 3; w++) d.push(lcCard(c, 0)); for (var v = 2; v <= 10; v++) d.push(lcCard(c, v)); }
       shuffle(d);
-      return { n: 2, hands: [LC.sort(d.splice(0, 8)), LC.sort(d.splice(0, 8))], deck: d, exp: [[[], [], [], [], [], []], [[], [], [], [], [], []]], disc: [[], [], [], [], [], []], phase: 'play', next: (ctx.dealer + 1) % 2, dealer: ctx.dealer, names: names(ctx), justDisc: -1, end: false, round: ctx.round };
+      return { n: 2, hands: [LC.sort(d.splice(0, 8)), LC.sort(d.splice(0, 8))], deck: d, exp: [[[], [], [], [], []], [[], [], [], [], []]], disc: [[], [], [], [], []], phase: 'play', next: (ctx.dealer + 1) % 2, dealer: ctx.dealer, names: names(ctx), justDisc: -1, end: false, round: ctx.round, last: '' };
     },
     prep: function (ctx, g) { ctx.k = g.vs.k || 0; },
     title: function (st, ctx) { return 'round ' + (ctx.k + 1); },
     sort: function (h) { return h.sort(function (a, b) { return a.s - b.s || a.r - b.r; }); },
     turn: function (st) { return st.end ? -1 : st.next; },
     fits: function (ex, c) { if (!ex.length) return true; var top = ex[ex.length - 1]; return c.r === 0 ? top.r === 0 : c.r > top.r; },
+    // A discard worth taking: it slots straight into an expedition already started.
+    takeFor: function (st, seat, notColor) {
+      var ex = st.exp[seat];
+      for (var c = 0; c < 5; c++) { var top = st.disc[c][st.disc[c].length - 1]; if (top && c !== notColor && ex[c].length && top.r && LC.fits(ex[c], top) && top.r - (ex[c][ex[c].length - 1].r || 1) <= 2) return c; }
+      return null;
+    },
     ai: function (st, seat, level) {
-      var h = st.hands[seat], ex = st.exp[seat], left = st.deck.length;
-      if (st.phase === 'draw') {
-        for (var c = 0; c < 6; c++) { var top = st.disc[c][st.disc[c].length - 1]; if (top && c !== st.justDisc && ex[c].length && top.r && LC.fits(ex[c], top) && top.r - (ex[c][ex[c].length - 1].r || 1) <= 2) return { draw: c }; }
-        return { draw: 'deck' };
-      }
-      var best = null;
+      if (st.phase === 'draw') { var t = LC.takeFor(st, seat, st.justDisc); return { draw: t == null ? 'deck' : t }; }
+      var h = st.hands[seat], ex = st.exp[seat], left = st.deck.length, best = null;
       h.forEach(function (card) {
         var e = ex[card.s], v;
         if (LC.fits(e, card)) {
@@ -5626,34 +5646,49 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         if (level === 'easy') v += Math.random() * 8;
         if (!best || v > best.v) best = { v: v, c: card, play: v > 0 };
       });
-      if (best.play) return { play: best.c.id };
-      var opp = st.exp[1 - seat], junk = h.slice().sort(function (a, b) {
-        var ra = (opp[a.s].length && LC.fits(opp[a.s], a) ? 10 : 0) + (ex[a.s].length ? 5 : 0) + a.r * 0.3, rb = (opp[b.s].length && LC.fits(opp[b.s], b) ? 10 : 0) + (ex[b.s].length ? 5 : 0) + b.r * 0.3;
-        return ra - rb;
-      })[0];
-      return { discard: junk.id };
+      if (best.play) return { play: best.c.id, take: LC.takeFor(st, seat, -1) };
+      var opp = st.exp[1 - seat], rate = function (a) { return (opp[a.s].length && LC.fits(opp[a.s], a) ? 10 : 0) + (ex[a.s].length ? 5 : 0) + a.r * 0.3; };
+      var junk = h.slice().sort(function (a, b) { return rate(a) - rate(b); })[0];
+      return { discard: junk.id, take: LC.takeFor(st, seat, junk.s) };
     },
     act: function (a, el, st, P) {
-      if (st.phase === 'draw') { if (a === 'deck') return { draw: 'deck' }; if (a === 'dpile' && +el.dataset.i !== st.justDisc && st.disc[+el.dataset.i].length) return { draw: +el.dataset.i }; return null; }
+      if (st.phase === 'draw') {
+        if (a === 'deck') return { draw: 'deck' };
+        if (a === 'dpile') { var k = +el.dataset.i; if (k === st.justDisc) { P.msg = 'You can’t take back the card you just discarded.'; return true; } if (st.disc[k].length) return { draw: k }; }
+        return null;
+      }
       if (a === 'card') return selToggle(P, el.dataset.id, 1);
       var c = selCards(P, st.hands[0])[0]; if (!c) return null;
       if (a === 'play') { if (!LC.fits(st.exp[0][c.s], c)) { P.msg = 'That card is lower than your ' + LCN[c.s] + ' expedition.'; return true; } return { play: c.id }; }
       if (a === 'discard') return { discard: c.id };
     },
+    // You play or discard, then choose where to draw from. The computer does both in one go.
     apply: function (st, seat, mv) {
-      var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat];
-      if (mv.play) { var c = takeIds(h, [mv.play])[0]; st.exp[seat][c.s].push(c); st.phase = 'draw'; st.justDisc = -1; return { msg: who + (seat === 0 ? ' play the ' : ' plays the ') + nameOf(c) + '.' + (seat === 0 ? ' Now draw.' : '') }; }
-      if (mv.discard) { var d = takeIds(h, [mv.discard])[0]; st.disc[d.s].push(d); st.phase = 'draw'; st.justDisc = d.s; return { msg: who + (seat === 0 ? ' discard the ' : ' discards the ') + nameOf(d) + '.' + (seat === 0 ? ' Now draw.' : '') }; }
-      var got = mv.draw === 'deck' ? st.deck.pop() : st.disc[mv.draw].pop(); h.push(got); LC.sort(h);
+      var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat], card;
+      if (mv.play || mv.discard) {
+        if (mv.play) { card = takeIds(h, [mv.play])[0]; st.exp[seat][card.s].push(card); st.last = who + ' played the ' + nameOf(card); st.justDisc = -1; }
+        else { card = takeIds(h, [mv.discard])[0]; st.disc[card.s].push(card); st.last = who + ' discarded the ' + nameOf(card); st.justDisc = card.s; }
+        if (!('take' in mv)) { st.phase = 'draw'; return { msg: st.last + '.' }; }
+        return LC.draw(st, seat, mv.take == null ? 'deck' : mv.take);
+      }
+      if (mv.draw != null) return LC.draw(st, seat, mv.draw);
+    },
+    draw: function (st, seat, from) {
+      var h = st.hands[seat], took = null, drew = null;
+      if (from !== 'deck' && from !== st.justDisc && st.disc[from] && st.disc[from].length) took = st.disc[from].pop();
+      else drew = st.deck.pop();
+      h.push(took || drew); LC.sort(h);
       st.phase = 'play'; st.justDisc = -1; st.next = 1 - seat;
       if (!st.deck.length) st.end = true;
-      return { msg: (seat === 0 ? 'You ' : who + ' ') + (mv.draw === 'deck' ? (seat === 0 ? 'draw the ' + nameOf(got) + '.' : 'draws from the deck.') : (seat === 0 ? 'take the ' : 'takes the ') + nameOf(got) + '.') + (st.end ? ' The deck is empty.' : ''), pause: 700 };
+      var got = took ? ' and took the ' + nameOf(took) + ' from the discards' : seat === 0 ? ' and drew the ' + nameOf(drew) : ' and drew from the deck';
+      return { msg: st.last + got + '.' + (st.end ? ' The deck is empty: the round is over.' : ''), pause: 900 };
     },
     score: function (st) { return st.exp.map(function (ex) { var each = ex.map(lcScore); return { each: each, pts: sum(each, function (x) { return x || 0; }) }; }); },
+    // Rows run colour by colour within each round; older sheets also have a purple row, left blank.
     record: function (g, st, res, P) {
-      var k = g.vs.k || 0, cs = ['Sum', 'Wagers', 'Cards'].map(function (n) { return colId(g, n); });
-      for (var c = 0; c < 6; c++) {
-        var r = g.rounds[k * 6 + c]; if (!r) continue;
+      var k = g.vs.k || 0, per = Math.round(g.rounds.length / 3) || 5, cs = ['Sum', 'Wagers', 'Cards'].map(function (n) { return colId(g, n); });
+      for (var c = 0; c < 5; c++) {
+        var r = g.rounds[k * per + c]; if (!r) continue;
         [0, 1].forEach(function (i) {
           var ex = st.exp[i][c]; if (!ex.length) return;
           setCell(r, P.seats[i].pid, cs[0], sum(ex, function (x) { return x.r; })); setCell(r, P.seats[i].pid, cs[1], ex.filter(function (x) { return !x.r; }).length); setCell(r, P.seats[i].pid, cs[2], ex.length);
@@ -5663,14 +5698,24 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     },
     over: function (g) { return (g.vs.k || 0) >= 3; },
     view: function (st, P) {
-      var my = LC.turn(st) === 0, sel = selCards(P, st.hands[0])[0];
-      var exRow = function (i) { return '<div class="lcrow">' + st.exp[i].map(function (ex, c) { return '<div class="lccol lc' + c + 'b">' + (ex.length ? ex.map(function (x) { return showCard(x, ' mini'); }).join('') : '') + '<span class="lcsc">' + (ex.length ? lcScore(ex) : '') + '</span></div>'; }).join('') + '</div>'; };
-      var out = '<div class="lcrow discs">' + st.disc.map(function (d, c) { var top = d[d.length - 1], can = my && st.phase === 'draw' && top && c !== st.justDisc; return '<button type="button" class="lccol lc' + c + 'b" data-pa="dpile" data-i="' + c + '"' + (can ? '' : ' disabled') + ' aria-label="' + LCN[c] + ' discards">' + (top ? showCard(top, ' mini') : '') + '</button>'; }).join('') + '</div>';
-      out += '<div class="piles"><button type="button" class="pilebtn" data-pa="deck"' + (my && st.phase === 'draw' ? '' : ' disabled') + '><span class="card back"></span><span>' + st.deck.length + ' left' + (my && st.phase === 'draw' ? ' · draw' : '') + '</span></button></div>';
+      var my = LC.turn(st) === 0, drawing = my && st.phase === 'draw', sel = selCards(P, st.hands[0])[0];
+      // Each card in an expedition shows its number; only the newest is shown in full.
+      var exRow = function (i) {
+        return '<div class="lcrow exp">' + st.exp[i].map(function (ex, c) {
+          return '<div class="lccol lc' + c + 'b">' + ex.map(function (x, k) { return showCard(x, k < ex.length - 1 ? ' under' : ''); }).join('') + '<span class="lcsc">' + (ex.length ? lcScore(ex) : '') + '</span></div>';
+        }).join('') + '</div>';
+      };
+      // The deck sits top right, out of the way; the discard piles line up under their expeditions.
+      var deck = '<button type="button" class="lcdeck' + (drawing ? ' cantake' : '') + '" data-pa="deck"' + (drawing ? '' : ' disabled') + ' aria-label="Deck, ' + st.deck.length + ' cards"><span class="card back"></span><span>' + st.deck.length + '<br>left</span></button>';
+      var out = '<div class="lcview"><div class="lchead"><p class="tinfo">Computer’s expeditions · ' + st.hands[1].length + ' cards</p>' + deck + '</div>' + exRow(1);
+      out += '<div class="lcrow discs">' + st.disc.map(function (d, c) {
+        var top = d[d.length - 1], can = drawing && top && c !== st.justDisc;
+        return '<button type="button" class="lccol lc' + c + 'b' + (can ? ' cantake' : '') + '" data-pa="dpile" data-i="' + c + '"' + (can ? '' : ' disabled') + ' aria-label="' + LCN[c] + ' discards' + (top ? ', top card ' + nameOf(top) : ', empty') + '">' + (top ? showCard(top) : '<span class="lcempty"></span>') + '</button>';
+      }).join('') + '</div>';
+      out += '<p class="tinfo">Your expeditions</p>' + exRow(0);
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'play'; }, picked: function (c) { return sel === c; } });
       out += btns(my && st.phase === 'play' ? [btn('play', 'Play to expedition', true, sel ? '' : ' disabled'), btn('discard', 'Discard', false, sel ? '' : ' disabled')] : []);
-      out += note(my ? (st.phase === 'play' ? 'Select a card, then play it or discard it.' : 'Draw from the deck or take the top of a discard pile (not the one you just used).') : '');
-      return out + '<p class="tinfo">Your expeditions</p>' + exRow(0) + '<p class="tinfo">Computer’s expeditions · ' + st.hands[1].length + ' cards</p>' + exRow(1);
+      return out + note(my && !drawing ? 'Select a card, then play it or discard it.' : '') + '</div>';
     },
     doneLine: function (st, res) { return 'You score ' + res[0].pts + ' this round, the computer ' + res[1].pts + '.'; },
     detail: function (st, res, P) { return resTable(P, LCN.map(function (n, c) { return { name: n[0].toUpperCase() + n.slice(1), v: [res[0].each[c] == null ? '–' : res[0].each[c], res[1].each[c] == null ? '–' : res[1].each[c]] }; }), ['You', 'Computer']); },
@@ -6773,7 +6818,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   CN.undoable = function (st, mv) { return !!(mv.meld || mv.add || mv.take); };
   BB.undoable = function (st, mv) { return !!((mv.meld || mv.add) && st.hands[st.next].length > (mv.meld ? mv.meld.length : mv.add.length)); };
   P10.undoable = function (st, mv) { return !!(mv.lay || mv.hit); };
-  LC.undoable = function (st, mv) { return !!(mv.play || mv.discard); };
+  LC.undoable = function (st, mv) { return !!(mv.play || mv.discard) && !('take' in mv); };
   GOLF.undoable = function (st, mv) { return mv.draw === 'pile'; };
   MT.undoable = function (st, mv) { return !!mv.play; };
   KK.undoable = function (st, mv) { return !!(mv.meld || mv.add || mv.swap || mv.draw === 'pile'); };
