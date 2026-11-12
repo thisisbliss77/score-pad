@@ -538,6 +538,7 @@ button.pilebtn:not(:disabled) span:last-child { color: var(--accent); font-weigh
 .lcempty { width: 48px; height: 70px; border: 2px dashed var(--lcb); border-radius: 7px; opacity: .5; }
 .lcdeck { display: flex; flex-direction: row; align-items: center; gap: 6px; background: none; border: 0; border-radius: 10px; padding: 4px 6px; font-size: 12px; line-height: 1.2; color: var(--muted); text-align: left; flex: none; }
 .msgrow { display: flex; gap: 10px; align-items: flex-start; }
+.pbtns .pspace { flex: 1 1 140px; }
 .msgrow .pmsg { flex: 1; min-width: 0; }
 .lcdeckwrap { flex: none; }
 .lcdeck { flex-direction: column; gap: 2px; padding: 3px; }
@@ -551,6 +552,10 @@ button.pilebtn:not(:disabled) span:last-child { color: var(--accent); font-weigh
 .card.jest .jk { color: #5b4c86; }
 .mcards .card .cs.jk .jst { width: 18px; height: 18px; }
 .card.off { cursor: default; }
+.outbanner { display: flex; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink); border-radius: 12px; padding: 10px 14px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.outbanner svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+@media (prefers-reduced-motion: no-preference) { .outbanner.fresh { animation: bannerin .6s cubic-bezier(.2, 1.4, .4, 1); } }
+@keyframes bannerin { 0% { transform: translateY(-14px) scale(.92); opacity: 0; } 60% { transform: translateY(2px) scale(1.03); opacity: 1; } 100% { transform: none; } }
 .card.newcard, .dom[data-new] { box-shadow: 0 0 0 3px #3a8ee6, 0 0 14px rgba(58, 142, 230, .55); }
 .card.newcard.picked { box-shadow: 0 0 0 3px var(--accent), 0 0 14px rgba(58, 142, 230, .7); }
 .card.dragging { opacity: .25; }
@@ -1045,6 +1050,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       if (Array.isArray(g.vs.done)) vs.done = g.vs.done.filter(function (p) { return pids.indexOf(p) >= 0; });
       if (Array.isArray(g.vs.humans)) { var hs = g.vs.humans.filter(function (p) { return pids.indexOf(p) >= 0; }); if (hs.length) vs.humans = hs; }
       if (typeof g.vs.partner === 'string') vs.partner = txt(g.vs.partner, 24, 'Partner');
+      if (Array.isArray(g.vs.cpuNames)) vs.cpuNames = g.vs.cpuNames.slice(0, 3).map(function (n) { return txt(n, 24, 'Computer'); });
       if (Array.isArray(g.vs.names)) vs.names = g.vs.names.slice(0, 2).map(function (n) { return txt(n, 24, 'Player'); });
       ['d0', 'k'].forEach(function (k) { if (typeof g.vs[k] === 'number' && g.vs[k] >= 0 && g.vs[k] < 100) vs[k] = Math.floor(g.vs[k]); });
       out.vs = vs;
@@ -1339,8 +1345,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function renderGame(g) {
     if (g.over) {
       app.innerHTML =
-        '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px"></div>' +
-        '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button></div>' + vsBarHTML(g) +
+        '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px">' + sheetMenuBtn() + '</div>' + sheetMenu(g) +
+        vsBarHTML(g) +
         '<div class="over' + (ui.fanfare ? ' pop' : '') + '">' + CUP + '<div><p>Game over · ' + (g.fixed ? 'final sheet' : g.rounds.length + (g.rounds.length === 1 ? ' round' : ' rounds')) + '</p><h1>' + esc(winnerText(g)) + '</h1></div></div>' +
         '<h2>Final scores</h2><div class="standings" id="standings">' + standingsHTML(g) + '</div>' + (gameName(g) === 'Koum Kan' ? '<div id="kkpanel">' + kkPanelHTML(g) + '</div>' : '') + chipPanelHTML(g) +
         '<div class="actions"><button type="button" class="btn" data-act="toggletable">' + (ui.showTable ? 'Hide full table' : 'Show full table') + '</button>' +
@@ -1353,8 +1359,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return;
     }
     app.innerHTML =
-      '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px"></div>' +
-      '<div class="top"><button type="button" class="btn ghost" data-act="home" aria-label="Back to games">← Games</button>' + rulesBtn(g) + '</div>' + vsBarHTML(g) +
+      '<div class="ttl">' + iconHTML(themeFor(g), 'big') + '<input class="title" id="title" value="' + esc(g.title) + '" maxlength="60" aria-label="Game title" style="font-size:' + titleSize(g.title) + 'px">' + sheetMenuBtn() + '</div>' + sheetMenu(g) +
+      vsBarHTML(g) +
       rulesHTML(g) +
       '<div class="standings" id="standings">' + standingsHTML(g) + '</div>' + (gameName(g) === 'Koum Kan' ? '<div id="kkpanel">' + kkPanelHTML(g) + '</div>' : '') + '<div id="chpanel">' + chipPanelHTML(g) + '</div>' + '<div id="gpanel">' + gamePanelHTML(g) + '</div>' + '<div id="dealnext">' + dealNextHTML(g) + '</div>' +
       sheetHTML(g) + actionsHTML(g) + toolsHTML(g) + setupHTML(g) +
@@ -1696,6 +1702,13 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     return null;
   }
   function titleSize(t) { var n = String(t || '').length; return n <= 13 ? 26 : n <= 17 ? 22 : n <= 22 ? 19 : 16; }
+  // Score sheets share the play screen's menu: back to the games list, and the rules.
+  function sheetMenuBtn() { return '<button type="button" class="pmenu" data-act="smenu" aria-expanded="' + !!ui.sheetMenu + '" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>'; }
+  function sheetMenu(g) {
+    if (!ui.sheetMenu) return '';
+    return '<div class="pmenubox" role="menu"><button type="button" class="btn" role="menuitem" data-act="home">Home</button>' +
+      (rulesFor(g) ? '<button type="button" class="btn' + (ui.rulesOpen ? ' on' : '') + '" role="menuitem" data-act="rules">' + (ui.rulesOpen ? 'Hide rules' : 'Rules') + '</button>' : '') + '</div>';
+  }
   function rulesBtn(g) {
     return rulesFor(g) ? '<button type="button" class="btn' + (ui.rulesOpen ? ' primary' : '') + '" data-act="rules" aria-expanded="' + (ui.rulesOpen ? 'true' : 'false') + '">Rules</button>' : '';
   }
@@ -1759,7 +1772,6 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (P.head) g.head = String(P.head).slice(0, 12);
     if (P.dyn) { g.dyn = P.dyn; g.fixed = true; syncRows(g); }
     games[id] = g; touch(id, true); open(id);
-    var np = document.getElementById('new-player'); if (np) np.focus();
   }
 
   // Each score column is only as wide as its longest entry (or its total).
@@ -1890,7 +1902,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     }
     if (ui.armed) ui.armed = null;
     if (act === 'open') return open(b.dataset.id);
-    if (act === 'home') { if (g && isUnused(g)) removeGame(g.id); return open(null); }
+    if (act === 'home') { ui.sheetMenu = false; if (g && isUnused(g)) removeGame(g.id); return open(null); }
     if (act === 'preset') return startPreset(+b.dataset.i);
     if (act === 'allgames') { ui.allOpen = !ui.allOpen; render(); return; }
     if (act === 'lbopen') { ui.lbOpen = ui.lbOpen === b.dataset.key ? null : b.dataset.key; render(); return; }
@@ -1923,7 +1935,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (act === 'clearall') { Object.keys(games).forEach(removeGame); ui.modal = null; render(); return; }
     if (act === 'tpl') { if (templates[b.dataset.id]) startPreset(fromTemplate(templates[b.dataset.id])); return; }
     if (!g) return;
-    if (act === 'rules') { ui.rulesOpen = !ui.rulesOpen; render(); return; }
+    if (act === 'smenu') { ui.sheetMenu = !ui.sheetMenu; render(); return; }
+    if (act === 'rules') { ui.rulesOpen = !ui.rulesOpen; ui.sheetMenu = false; render(); return; }
     if (act === 'rtab') { ui.rulesTab = +b.dataset.i || 0; render(); return; }
     if (act === 'savetpl') { saveTemplate(g); ui.tplSaved = g.id; render(); return; }
     if (act === 'toggletable') { ui.showTable = !ui.showTable; render(); return; }
@@ -2114,7 +2127,6 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var id = uid();
       games[id] = normalize({ id: id, title: titleCase(v) || 'Untitled Game', createdAt: Date.now(), players: [], rounds: [] });
       touch(id, true); open(id);
-      var np = document.getElementById('new-player'); if (np) np.focus();
       return;
     }
     if (!g) return;
@@ -2660,7 +2672,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     ui.vsName = here && g.players.length === 1 ? g.players[0].name : g.vs && playerName(g, g.vs.me) ? playerName(g, g.vs.me) : (ui.vsName || lsGet(LSME) || '');
     if (g.vs && g.vs.level) ui.vsLevel = g.vs.level;
     if (!ui.vsLevel) ui.vsLevel = 'hard';
-    render(); var f = document.getElementById('vs-name'); if (f && !f.value) f.focus();
+    render();
   }
   function vsBarHTML(g) {
     if (!vsKindFor(g)) return '';
@@ -2701,7 +2713,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     var hn = Math.min(vsMaxPeople(k), +ui.vsPeople || 1), cr = vsCpuRange(k, hn);
     var extra = range(2, hn).map(function (i) { return String(((ui.vsNames || {})[i] || '')).trim().slice(0, 24) || 'Player ' + i; });
     var nc = K.team ? 1 : Math.max(cr[0], Math.min(cr[1], +ui.vsCpus || (K.cpus ? K.cpus[2] : 1)));
-    for (var i = 0; i < nc; i++) cpus.push({ id: uid(), name: K.team ? 'Computers' : nc === 1 ? (name.toLowerCase() === 'computer' ? 'The Computer' : 'Computer') : 'Computer ' + (i + 1) });
+    var cn = cpuNames(k, [name].concat(extra));
+    for (var i = 0; i < nc; i++) cpus.push({ id: uid(), name: K.team ? cn[0] + ' & ' + cn[1] : cn[i] });
     var cpu = cpus[0], people = K.team ? [] : extra.map(function (n) { return { id: uid(), name: n }; });
     me.name = K.team && extra.length ? name + ' & ' + extra[0] : name;
     g.players = [me].concat(people, cpus);
@@ -2709,6 +2722,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (nc > 1) g.vs.cpus = cpus.map(function (c) { return c.id; });
     if (people.length) g.vs.humans = people.map(function (p) { return p.id; });
     if (K.team && extra.length) { g.vs.partner = extra[0]; g.vs.names = [name, extra[0]]; }
+    if (K.team) g.vs.cpuNames = cn.slice(0, 3);
     if (g.dyn) syncRows(g);
     if (k === 'xeri') g.firstDealer = Math.random() < 0.5 ? me.id : cpu.id;
     if (k === 'farkle') g.vs.first = Math.random() < 0.5 ? me.id : cpu.id;
@@ -2761,7 +2775,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); playAct('leave'); } });
     if (!restoreLive(g)) START[PL.kind](g);
     playRender();
-    var first = el.querySelector('button'); if (first) first.focus({ preventScroll: true });
+
   }
   function closePlay() {
     if (!PL) return;
@@ -2821,9 +2835,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       (R ? '<button type="button" class="btn' + (PL.rulesOpen ? ' on' : '') + '" role="menuitem" data-pa="prules">' + (PL.rulesOpen ? 'Hide rules' : 'Rules') + '</button>' : '') +
       '<button type="button" class="btn" role="menuitem" data-pa="speed">Computer speed: ' + SPEEDNAME[speedKey()] + '</button><p class="psub">' + sub + '</p></div>' : '';
     var rules = R && PL.rulesOpen ? '<div class="rules prules"><div class="tabs" role="tablist">' + TABS.map(function (n, i) { var on = i === (PL.rulesTab || 0); return '<button type="button" role="tab" class="tab' + (on ? ' on' : '') + '" aria-selected="' + on + '" data-pa="prtab" data-i="' + i + '">' + n + '</button>'; }).join('') + '</div><p role="tabpanel">' + esc(R[PL.rulesTab || 0] || '') + '</p></div>' : '';
-    PL.el.innerHTML = '<div class="pwrap">' +
+    PL.el.innerHTML = withCpuName(g, '<div class="pwrap">' +
       '<div class="ptitle"><h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + '<span>' + esc(PL.title || K.name) + '</span></h1>' + quick + menuBtn + '</div>' + menu + rules +
-      body + '</div>';
+      body + '</div>');
     // Scores go to the very bottom, leaving the top of the screen for play.
     var wrapEl = PL.el.querySelector('.pwrap'), stands = wrapEl && wrapEl.querySelector(':scope > .pstands');
     if (stands) wrapEl.appendChild(stands);
@@ -2972,7 +2986,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         ' aria-label="Play the ' + cardName(c) + '">' + cardFace(c) + '</button>';
     }).join('') + '</div>';
     if (!PL.showTrick) out += '<div class="pbtns"><button type="button" class="btn" data-pa="trick"' + (PL.lastTrick ? '' : ' disabled') + '>See last trick</button></div>';
-    out += '<p class="note">' + (myTurn ? 'Tap a card to play it.' : PL.busy && st.turn === 1 ? 'The computer is choosing a card.' : '') + '</p>';
+    out += '<p class="note"></p>';
     return out;
   };
   function xResultHTML(g) {
@@ -3069,7 +3083,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   }
   VIEW.farkle = function (g) {
     var human = PL.who === g.vs.me && PL.phase !== 'cpu', ss = fkSelScore(), valid = ss > 0;
-    var out = standHTML(g, PL.phase === 'done' ? null : PL.who) + msgHTML();
+    var mbF = fkMustBeat(g, PL.who), hitter = mbF != null && PL.phase !== 'done' ? g.players.filter(function (p) { return total(g, p.id) >= g.vs.target; })[0] : null;
+    var out = standHTML(g, PL.phase === 'done' ? null : PL.who) + (hitter ? bannerHTML((hitter.id === g.vs.me ? 'You' : hitter.name) + ' reached ' + commas(g.vs.target) + '! Last turn.') : '') + msgHTML();
     if (PL.phase === 'done') {
       return out + '<div class="presult"><h3>' + esc(matchLine(g)) + '</h3><p class="note">After someone reaches ' + commas(g.vs.target) + ', the other player gets one last turn.</p>' +
         '<div class="pbtns"><button type="button" class="btn primary" data-pa="finish">See final scores</button></div></div>';
@@ -3089,7 +3104,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       else if (PL.phase === 'pick') {
         out += '<div class="pbtns"><button type="button" class="btn primary" data-pa="roll"' + (valid ? '' : ' disabled') + '>Roll ' + rem + (rem === 1 ? ' die' : ' dice') + '</button>' +
           '<button type="button" class="btn" data-pa="bank"' + (valid && fkCanBank(g, PL.tt + ss) ? '' : ' disabled') + '>Bank ' + commas(PL.tt + Math.max(0, ss)) + '</button></div>' +
-          '<p class="note">' + (PL.sel.length && !valid ? 'Every die you set aside has to score.' : valid && !fkCanBank(g, PL.tt + ss) ? 'You need 500 in one turn to get on the board.' : 'Tap the scoring dice to set aside, then roll the rest or bank.') + '</p>';
+          '<p class="note">' + (PL.sel.length && !valid ? 'Those dice don’t all score.' : valid && !fkCanBank(g, PL.tt + ss) ? 'Need 500 to get on the board.' : '') + '</p>';
       } else if (PL.phase === 'farkle') out += '<div class="pbtns"><button type="button" class="btn primary" data-pa="fkok">OK</button></div>';
     }
     return out;
@@ -3282,8 +3297,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   VIEW.tavli = function (g) {
     var T = PL.T, turnPid = PL.phase === 'done' || PL.phase === 'opening' ? null : PL.turn === 0 ? g.vs.me : g.vs.cpu;
     var out = standHTML(g, turnPid) + msgHTML() + tvSVG();
-    out += '<p class="note">Cube: ' + PL.cube + (PL.cubeOwner === 0 ? ' (yours)' : PL.cubeOwner === 1 ? ' (computer’s)' : ' (in the middle)') + '. You have the light checkers. ' + (T.v === 'fevga' ? 'Both sides go round the same way.' : 'Yours move from the top right, round the board, and bear off at the bottom right.') +
-      ' Pips to go: you ' + TV.pip(T, 0) + ', computer ' + TV.pip(T, 1) + '.</p>';
+    out += '<p class="note">Cube: ' + PL.cube + (PL.cubeOwner === 0 ? ' (yours)' : PL.cubeOwner === 1 ? ' (computer’s)' : ' (in the middle)') + '.' + (easyMode() ? ' Pips: you ' + TV.pip(T, 0) + ', computer ' + TV.pip(T, 1) + '.' : '') + '</p>';
     if (PL.phase === 'done') {
       return out + '<div class="presult"><h3>' + esc(PL.over ? matchLine(g) : PL.resultText) + '</h3>' + (PL.over ? '<p class="note">' + esc(PL.resultText) + '</p>' : '') +
         '<div class="pbtns">' + (PL.over ? '<button type="button" class="btn primary" data-pa="finish">See final scores</button>' :
@@ -3297,8 +3311,6 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (PL.phase === 'move' && PL.made.length) btns = '<button type="button" class="btn" data-pa="undo">Undo</button>';
     if (PL.phase === 'confirm') btns = '<button type="button" class="btn" data-pa="undo">Undo</button><button type="button" class="btn primary" data-pa="endturn">End turn</button>';
     out += '<div class="pbtns">' + btns + '</div>';
-    if (PL.phase === 'move') out += '<p class="note">' + (PL.sel == null ? 'Tap one of your outlined checkers.' : 'Tap a highlighted point to move there' + (PL.L.some(function (m) { return m.f === PL.sel && m.t === 0; }) ? ', or the tray on the right to bear off' : '') + '.') + '</p>';
-    out += '<p class="note">' + esc(TVHELP[T.v]) + '</p>';
     return out;
   };
   ACT.tavli = function (a, b) {
@@ -3375,11 +3387,24 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function seatsFor(g) {
     var K = VSK[g.vs.kind], cpus = g.vs.cpus && g.vs.cpus.length ? g.vs.cpus : [g.vs.cpu], hum = g.vs.humans || [], multi = hum.length > 0 || !!g.vs.partner;
     if (K.team) return [
-      { pid: g.vs.me, name: multi ? (g.vs.names && g.vs.names[0]) || 'Player 1' : 'You', team: 0, human: true }, { pid: g.vs.cpu, name: 'Left', team: 1 },
-      { pid: g.vs.me, name: g.vs.partner || 'Partner', team: 0, human: !!g.vs.partner }, { pid: g.vs.cpu, name: 'Right', team: 1 }];
+      { pid: g.vs.me, name: multi ? (g.vs.names && g.vs.names[0]) || 'Player 1' : 'You', team: 0, human: true }, { pid: g.vs.cpu, name: (g.vs.cpuNames && g.vs.cpuNames[0]) || 'Left', team: 1 },
+      { pid: g.vs.me, name: g.vs.partner || (g.vs.cpuNames && g.vs.cpuNames[2]) || 'Partner', team: 0, human: !!g.vs.partner }, { pid: g.vs.cpu, name: (g.vs.cpuNames && g.vs.cpuNames[1]) || 'Right', team: 1 }];
     return [{ pid: g.vs.me, name: multi ? playerName(g, g.vs.me) : 'You', team: 0, human: true }]
       .concat(hum.map(function (pid, i) { return { pid: pid, name: playerName(g, pid) || 'Player', team: i + 1, human: true }; }))
       .concat(cpus.map(function (pid, i) { return { pid: pid, name: playerName(g, pid) || 'Computer', team: hum.length + i + 1 }; }));
+  }
+  // Computer players get names that suit where each game comes from.
+  var CPU_NAMES = {
+    greek: ['Nikos', 'Eleni', 'Yiannis', 'Sofia', 'Kostas', 'Maria'],
+    mextrain: ['Diego', 'Lucía', 'Mateo', 'Valeria', 'Rafael', 'Camila'],
+    canasta: ['Rosa', 'Pablo', 'Inés', 'Tomás'],
+    other: ['Frank', 'Dot', 'Marge', 'Walt', 'Hazel', 'Lou', 'Edie', 'Gus']
+  };
+  function cpuNames(kind, taken) {
+    var set = ['xeri', 'tavli', 'diloti', 'kumkan', 'biriba'].indexOf(kind) >= 0 ? 'greek' : CPU_NAMES[kind] ? kind : 'other';
+    var used = (taken || []).map(function (n) { return String(n || '').trim().toLowerCase(); });
+    var list = CPU_NAMES[set].filter(function (n) { return used.indexOf(n.toLowerCase()) < 0; });
+    return list.concat(CPU_NAMES.other.filter(function (n) { return used.indexOf(n.toLowerCase()) < 0 && list.indexOf(n) < 0; }));
   }
   function humanSeat(s) { return !!(PL && PL.seats && PL.seats[s] && PL.seats[s].human); }
   function roundsDone(g) { return g.rounds.filter(function (r) { return !rowEmpty(r); }).length; }
@@ -3469,14 +3494,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     var team = VSK[PL.kind].team, stv = V ? rotState(PL.kind, PL.st, V) : PL.st;
     if (V || hide) {
       if (!V) stv = JSON.parse(JSON.stringify(PL.st));
-      if (stv.names) stv.names = stv.names.map(function (n, j) { return j === 0 ? 'You' : team ? (j === 1 ? 'Left opponent' : j === 3 ? 'Right opponent' : PL.seats[(j + V) % PL.seats.length].name) : n; });
+      if (stv.names) stv.names = stv.names.map(function (n, j) { return j === 0 ? 'You' : n; });
       if (hide && stv.hands) stv.hands[0] = [];
     }
-    var Pv = V ? Object.assign(Object.create(PL), { seats: PL.seats.map(function (s, j, all) { var o = all[(j + V) % all.length]; return { pid: o.pid, team: o.team, human: o.human, name: j === 0 ? 'You' : team ? (j === 1 ? 'Left' : j === 3 ? 'Right' : o.name) : o.name }; }) }) : PL;
+    var Pv = V ? Object.assign(Object.create(PL), { seats: PL.seats.map(function (s, j, all) { var o = all[(j + V) % all.length]; return { pid: o.pid, team: o.team, human: o.human, name: j === 0 ? 'You' : o.name }; }) }) : PL;
     return { st: stv, P: Pv };
   }
   VIEW.gm = function (g) {
-    var M = GMS[PL.kind], t = M.turn(PL.st), out = standHTML(g, PL.phase === 'done' || t < 0 ? null : PL.seats[t].pid) + msgHTML();
+    var M = GMS[PL.kind], t = M.turn(PL.st), out = standHTML(g, PL.phase === 'done' || t < 0 ? null : PL.seats[t].pid) + (PL.phase === 'play' && M.banner ? bannerHTML(M.banner(PL.st)) : '') + msgHTML();
     if (PL.cover != null && PL.phase === 'play') {
       var who = PL.seats[PL.cover].name;
       return out + '<div class="cover"><p>Pass the phone to <b>' + esc(who) + '</b>.</p><button type="button" class="btn primary" data-pa="uncover">I’m ' + esc(who) + ': show my hand</button></div>';
@@ -3541,6 +3566,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function btn(pa, label, primary, extra) { return '<button type="button" class="btn' + (primary ? ' primary' : '') + '" data-pa="' + pa + '"' + (extra || '') + '>' + esc(label) + '</button>'; }
   function btns(list) { return '<div class="pbtns">' + list.join('') + '</div>'; }
   function note(t) { return t ? '<p class="note">' + esc(t) + '</p>' : ''; }
+  // Calculation aids (suggested bids, outlines of what fits, running counts) only on Easy.
+  function easyMode() { var g = G(); return !!(g && g.vs && g.vs.level === 'easy'); }
   function resTable(P, rows, heads) {
     return '<div class="sheet"><table class="rtable"><thead><tr><th></th>' + heads.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr' + (r.cls ? ' class="' + r.cls + '"' : '') + '><td class="dl">' + esc(r.name) + '</td>' + r.v.map(function (v) { return '<td>' + esc(String(v)) + '</td>'; }).join('') + '</tr>'; }).join('') +
@@ -3714,7 +3741,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   }
   function playableHand(st, P, M) {
     var my = M.turn(st) === 0 && st.phase === 'play', L = my ? M.legal(st, 0) : [];
-    return handButtons(st.hands[0], { can: function (c) { return my && L.indexOf(c) >= 0; } }) + note(my ? 'Your turn: tap a card to play it.' : '');
+    return handButtons(st.hands[0], { can: function (c) { return my && L.indexOf(c) >= 0; } }) + note('');
   }
   function trickStart(ctx, hands, extra) {
     var st = { n: ctx.n, hands: hands, trick: [], shown: null, tricks: [], names: names(ctx), dealer: ctx.dealer, out: -1, phase: 'play', next: (ctx.dealer + 1) % ctx.n, level: ctx.level };
@@ -3775,9 +3802,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return h.slice().sort(function (a, b) { return danger(b) - danger(a); }).slice(0, 3);
     },
     ai: function (st, seat, level) {
-      if (st.phase === 'pass') return { pass: HEARTS.passPick(st.hands[seat]).map(function (c) { return c.id; }) };
+      if (st.phase === 'pass') return { pass: (level === 'easy' && Math.random() < 0.5 ? shuffle(st.hands[seat].slice()).slice(0, 3) : HEARTS.passPick(st.hands[seat])).map(function (c) { return c.id; }) };
       var L = HEARTS.legal(st, seat), M = HEARTS;
-      if (level === 'easy' && Math.random() < 0.35) return { card: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.55) return { card: pick(L).id };
       var lead = st.trick[0] && st.trick[0].card, power = function (c) { return c.r + (M.pts(c) ? 20 : 0); };
       if (!lead) {
         var qGone = st.qGone, sc = function (c) { return c.r + (c.s === 1 ? 8 : 0) + (c.s === 0 && c.r >= 12 && !qGone ? 30 : 0); };
@@ -3836,7 +3863,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       }
       var my = HEARTS.turn(st) === 0, L = my ? HEARTS.legal(st, 0) : [];
       return out + handButtons(st.hands[0], { can: function (c) { return my && L.indexOf(c) >= 0; }, mark: function (c) { return (st.recvs ? st.recvs[0] : st.recv || []).indexOf(c.id) >= 0; } }) +
-        note((my ? 'Your turn: tap a card. ' : '') + 'Your points this hand: ' + st.pts[0] + ((st.recvs ? st.recvs[0] : st.recv || []).length ? '. Outlined cards were passed to you.' : '.'));
+        note('Your points: ' + st.pts[0]);
     },
     doneLine: function (st, res) { return res.moon >= 0 ? (res.moon === 0 ? 'You shot the moon! Everyone else takes 26.' : st.names[res.moon] + ' shot the moon.') : 'Hand scored: you took ' + res.pts[0] + (res.pts[0] === 1 ? ' point.' : ' points.'); },
     detail: function (st, res, P) { return resTable(P, P.seats.map(function (s, i) { return { name: st.names[i], v: [res.pts[i]] }; }), ['Points']); },
@@ -3887,7 +3914,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return { bid: Math.max(1, Math.min(13, b)) };
       }
       var L = SP.legal(st, seat), pw = function (c) { return c.r + (c.s === 0 ? 20 : 0); };
-      if (level === 'easy' && Math.random() < 0.3) return { card: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.5) return { card: pick(L).id };
       var pn = (seat + 2) % 4;
       // Nil: duck everything. Partner of a nil bidder: cover the nil bidder’s winning cards.
       if (st.bids[seat] === 0) {
@@ -3942,8 +3969,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     view: function (st, P) {
       var bidOf = function (i) { return st.bids[i] == null ? 'no bid' : (st.bids[i] === 0 ? 'nil' : 'bid ' + st.bids[i]) + ', won ' + st.tricks[i]; };
       var out = trickView(st, P, SP, bidOf);
-      if (st.phase === 'bid' && st.bidder === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + '<p class="note">How many tricks will you take? Suggested: ' + Math.max(1, SP.estimate(st.hands[0])) + '. Nil means you aim to take none.' + (st.bids[2] === 0 ? ' Your partner bid nil.' : '') + '</p>' + bidButtons(0, 13, null, Math.max(1, SP.estimate(st.hands[0])), 'Nil');
-      return out + playableHand(st, P, SP) + note('Your team: bid ' + SP.contract(st, 0) + ', won ' + SP.won(st, 0) + '. Theirs: bid ' + SP.contract(st, 1) + ', won ' + SP.won(st, 1) + '.' + (st.bids[0] === 0 ? ' You bid nil: don’t take a trick!' : st.bids[2] === 0 ? ' Your partner bid nil: help them avoid tricks.' : ''));
+      if (st.phase === 'bid' && st.bidder === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + '<p class="note">Your bid' + (easyMode() ? ' (suggested ' + Math.max(1, SP.estimate(st.hands[0])) + ')' : '') + (st.bids[2] === 0 ? '. Partner bid nil.' : '') + '</p>' + bidButtons(0, 13, null, easyMode() ? Math.max(1, SP.estimate(st.hands[0])) : null, 'Nil');
+      return out + playableHand(st, P, SP) + note('Your team: bid ' + SP.contract(st, 0) + ', won ' + SP.won(st, 0) + '. Theirs: bid ' + SP.contract(st, 1) + ', won ' + SP.won(st, 1) + '.' + (st.bids[0] === 0 ? ' You bid nil.' : st.bids[2] === 0 ? ' Partner bid nil.' : ''));
     },
     doneLine: function (st, res) {
       var x = res[0], nil = x.nils.map(function (s) { return (s === 0 ? 'Your nil ' : 'Your partner’s nil ') + (st.tricks[s] === 0 ? 'succeeded.' : 'failed.'); }).join(' ');
@@ -3997,7 +4024,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return e + (4 - Object.keys(suits).length) * 0.6;
     },
     ai: function (st, seat, level) {
-      var h = st.hands[seat], th = level === 'easy' ? 6.5 : 7.2;
+      var h = st.hands[seat], th = EU.TH[level] != null ? EU.TH[level] : EU.TH.hard;
       if (st.phase === 'bid1') {
         var s = EU.strength(h, st.up.s, seat === st.dealer ? st.up : null) + ((seat + st.dealer) % 2 === 0 ? 0.6 : -0.6);
         return s >= th ? { order: st.up.s, alone: s >= 12 } : { pass: 1 };
@@ -4013,7 +4040,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return { discard: c.id };
       }
       var L = EU.legal(st, seat), pw = function (c) { var lead = st.trick[0] ? EU.eff(st, st.trick[0].card) : EU.eff(st, c); return EU.pow(st, c, lead) + (EU.pow(st, c) >= 50 ? 50 : 0); };
-      if (level === 'easy' && Math.random() < 0.3) return { card: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.55) return { card: pick(L).id };
       if (!st.trick.length) {
         var mine = seat % 2 === st.maker % 2, top = L.filter(function (c) { return EU.pow(st, c) >= 99; });
         if (mine && top.length) return { card: top[0].id };
@@ -4080,8 +4107,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       if (st.phase === 'bid1' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) + btns([btn('order', st.dealer === 0 ? 'Pick it up' : 'Order it up', true), btn('order', 'Go alone', false, ' data-v="alone"'), btn('pass', 'Pass')]);
       if (st.phase === 'bid2' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) +
         '<div class="bids">' + [0, 1, 2, 3].filter(function (s) { return s !== st.up.s; }).map(function (s) { return '<button type="button" class="btn" data-pa="suit" data-v="' + s + '">' + SU[s] + ' ' + SN[s] + '</button>'; }).join('') + '</div>' +
-        btns([btn('alone', P.ui.alone ? 'Going alone ✓' : 'Go alone', false), st.dealer === 0 ? '' : btn('pass', 'Pass')]) + note(st.dealer === 0 ? 'As dealer you must name a suit.' : '');
-      if (st.phase === 'discard' && me) return out + handButtons(st.hands[0]) + note('Tap a card to discard it.');
+        btns([btn('alone', P.ui.alone ? 'Going alone ✓' : 'Go alone', false), st.dealer === 0 ? '' : btn('pass', 'Pass')]) + note('');
+      if (st.phase === 'discard' && me) return out + handButtons(st.hands[0]) + note('Discard one card.');
       return out + playableHand(st, P, EU) + note(st.trump != null ? 'Trump: ' + SN[st.trump] + '. ' + (st.maker % 2 === 0 ? 'Your team' : 'They') + ' chose it' + (st.alone ? ' and went alone' : '') + '.' : '');
     },
     doneLine: function (st, res) { var mine = res.mk === 0; return (mine ? 'Your team' : 'They') + ' took ' + res.tr + ' tricks: ' + (res.pts[0] ? 'your team scores ' + res.pts[0] : 'they score ' + res.pts[1]) + '.'; },
@@ -4147,7 +4174,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     },
     ai: function (st, seat, level) {
       if (st.phase === 'bid') {
-        var e = PN.est(st.hands[seat]).v + (level === 'easy' ? rnd(40) - 20 : 0) + (st.high >= 0 && st.high % 2 === seat % 2 ? -40 : 0);
+        var e = PN.est(st.hands[seat]).v + (PN.OFF[level] != null ? PN.OFF[level] : PN.OFF.hard) + (level === 'easy' ? rnd(90) - 45 : 0) + (st.high >= 0 && st.high % 2 === seat % 2 ? -40 : 0);
         return e >= st.bid + 10 && !(st.high >= 0 && st.high % 2 === seat % 2 && st.bid >= 300) ? { bid: st.bid + 10 } : { pass: 1 };
       }
       if (st.phase === 'trump') return { trump: PN.est(st.hands[seat]).t };
@@ -4161,6 +4188,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       }
       var w = tkWinning(st, PN), partner = w.seat % 2 === seat % 2;
       if (partner) { var cnt = L.filter(function (c) { return c.r === 14 || c.r === 10 || c.r === 13; }).filter(function (c) { return !tkWouldWin(st, PN, seat, c) || true; }); if (cnt.length && st.trick.length === 3) return { card: cnt.sort(function (a, b) { return pw(a) - pw(b); })[0].id }; }
+      if (level === 'easy' && Math.random() < 0.45) return { card: pick(L).id };
       return { card: tkChoose(st, PN, seat, L, !partner, pw).id };
     },
     act: function (a, el, st, P) {
@@ -4235,13 +4263,13 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     view: function (st, P) {
       var info = function (i) { return st.phase === 'bid' ? (st.out4[i] ? 'passed' : st.high === i ? 'high bid ' + st.bid : 'bidding') : (st.melds ? 'meld ' + st.melds[i].pts : '') + (st.phase === 'play' ? ' · won ' + st.tricks[i] : ''); };
       var out = trickView(st, P, PN, info), me = PN.turn(st) === 0;
-      if (st.phase === 'bid' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Current bid: ' + (st.high < 0 ? 'none' : st.bid + ' by ' + st.names[st.high]) + '. Your rough estimate: ' + PN.est(st.hands[0]).v + '.') +
+      if (st.phase === 'bid' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('High bid: ' + (st.high < 0 ? 'none' : st.bid + ' (' + st.names[st.high] + ')') + (easyMode() ? '. Estimate: ' + PN.est(st.hands[0]).v : '')) +
         btns([btn('bid', 'Bid ' + Math.max(250, st.bid + 10), true, ' data-v="' + Math.max(250, st.bid + 10) + '"'), btn('bid', 'Bid ' + Math.max(260, st.bid + 20), false, ' data-v="' + Math.max(260, st.bid + 20) + '"'), btn('pass', 'Pass')]);
-      if (st.phase === 'trump' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) + '<p class="note">You won the bid at ' + st.bid + '. Name trump:</p><div class="bids">' + [0, 1, 2, 3].map(function (s) { return '<button type="button" class="btn" data-pa="suit" data-v="' + s + '">' + SU[s] + ' ' + SN[s] + ' (meld ' + PN.meldOf(st.hands[0], s).pts + ')</button>'; }).join('') + '</div>';
-      if ((st.phase === 'pass1' || st.phase === 'pass2') && me) { var sel = P.ui.sel || []; return out + handButtons(st.hands[0], { picked: function (c) { return sel.indexOf(c.id) >= 0; }, mark: function (c) { return (st.recv || []).indexOf(c.id) >= 0; } }) + note('Trump: ' + SN[st.trump] + '. ' + (st.phase === 'pass1' ? 'Choose 4 cards to pass to your partner, who won the bid: trump and aces help most.' : 'Choose 4 cards to pass back to your partner. Outlined cards came from them.')) + btns([btn('pinpass', 'Pass ' + sel.length + ' of 4', true, sel.length === 4 ? '' : ' disabled')]); }
+      if (st.phase === 'trump' && me) return out + handButtons(st.hands[0], { can: function () { return false; } }) + '<p class="note">Name trump.</p><div class="bids">' + [0, 1, 2, 3].map(function (s) { return '<button type="button" class="btn" data-pa="suit" data-v="' + s + '">' + SU[s] + ' ' + SN[s] + (easyMode() ? ' (meld ' + PN.meldOf(st.hands[0], s).pts + ')' : '') + '</button>'; }).join('') + '</div>';
+      if ((st.phase === 'pass1' || st.phase === 'pass2') && me) { var sel = P.ui.sel || []; return out + handButtons(st.hands[0], { picked: function (c) { return sel.indexOf(c.id) >= 0; }, mark: function (c) { return (st.recv || []).indexOf(c.id) >= 0; } }) + note('Trump: ' + SN[st.trump] + '. Pass 4 cards' + (st.phase === 'pass1' ? ' to your partner.' : ' back.')) + btns([btn('pinpass', 'Pass ' + sel.length + ' of 4', true, sel.length === 4 ? '' : ' disabled')]); }
       if (st.phase === 'meld') return out + handButtons(st.hands[0], { can: function () { return false; } }) +
         '<div class="presult"><h3>Meld with ' + SN[st.trump] + ' as trump</h3>' + resTable(P, st.melds.map(function (m, i) { return { name: st.names[i], v: [m.pts, m.parts.join(', ') || 'none'] }; }), ['Meld', '']) +
-        note('Your team: ' + st.meld[0] + '. Theirs: ' + st.meld[1] + '. Meld only counts for a team that takes at least one trick.') + btns([btn('meldok', 'Play the hand', true)]) + '</div>';
+        note('Meld: your team ' + st.meld[0] + ', theirs ' + st.meld[1] + '.') + btns([btn('meldok', 'Play the hand', true)]) + '</div>';
       return out + playableHand(st, P, PN) + note('Trump: ' + SN[st.trump] + '. Bid ' + st.bid + ' by ' + (st.high % 2 === 0 ? 'your team' : 'them') + '. Trick points: your team ' + st.cpts[0] + ', theirs ' + st.cpts[1] + '.');
     },
     doneLine: function (st, res) { var b = res[st.high % 2]; return (st.high % 2 === 0 ? 'Your team ' : 'They ') + (b.made ? 'made the bid of ' + st.bid + '.' : 'went set, losing ' + st.bid + '.'); },
@@ -4271,13 +4299,13 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     },
     ai: function (st, seat, level) {
       if (st.phase === 'bid') {
-        var b = OH.est(st, st.hands[seat]); if (level === 'easy') b = Math.max(0, b + rnd(3) - 1);
+        var b = OH.est(st, st.hands[seat]) + (OH.OFF[level] || 0); if (level === 'easy') b = Math.max(0, b + rnd(5) - 2);
         b = Math.min(st.k, b);
         if (b === OH.banned(st, seat)) b = b > 0 && Math.random() < 0.5 ? b - 1 : b + 1 <= st.k ? b + 1 : b - 1;
         return { bid: b };
       }
       var L = OH.legal(st, seat), pw = function (c) { return c.r + (c.s === st.trump ? 20 : 0); };
-      if (level === 'easy' && Math.random() < 0.3) return { card: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.5) return { card: pick(L).id };
       var want = st.tricks[seat] < st.bids[seat];
       if (!st.trick.length) return { card: L.slice().sort(function (a, b) { return want ? pw(b) - pw(a) : pw(a) - pw(b); })[0].id };
       return { card: tkChoose(st, OH, seat, L, want, pw).id };
@@ -4303,7 +4331,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     view: function (st, P) {
       var out = trickView(st, P, OH, function (i) { return st.bids[i] == null ? 'no bid' : 'bid ' + st.bids[i] + ', won ' + st.tricks[i]; });
       out = out.replace('<p class="tinfo">', '<p class="tinfo">');
-      if (st.phase === 'bid' && st.bidder === 0) { var bad = OH.banned(st, 0); return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Trump: ' + SN[st.trump] + '. How many tricks will you take?' + (bad >= 0 && bad <= st.k ? ' As dealer you can’t bid ' + bad + '.' : '')) + bidButtons(0, st.k, function (b) { return b === bad; }, Math.min(st.k, OH.est(st, st.hands[0]))); }
+      if (st.phase === 'bid' && st.bidder === 0) { var bad = OH.banned(st, 0); return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Trump: ' + SN[st.trump] + '.' + (bad >= 0 && bad <= st.k ? ' You can’t bid ' + bad + '.' : '')) + bidButtons(0, st.k, function (b) { return b === bad; }, easyMode() ? Math.min(st.k, OH.est(st, st.hands[0])) : null); }
       return out + playableHand(st, P, OH) + note('Trump: ' + SN[st.trump] + '. You bid ' + (st.bids[0] == null ? '–' : st.bids[0]) + ' and have won ' + st.tricks[0] + '.');
     },
     doneLine: function (st, res) { return res[0].tricks === res[0].bid ? 'You made your bid exactly: ' + res[0].pts + ' points.' : 'You bid ' + res[0].bid + ' and took ' + res[0].tricks + ': ' + res[0].pts + (res[0].pts === 1 ? ' point.' : ' points.'); },
@@ -4348,9 +4376,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     est: function (st, h) { var e = 0; h.forEach(function (c) { if (c.r === 15) e += 1; else if (c.s === st.trump && c.r >= 11) e += 0.75; else if (c.s === st.trump) e += 0.3; else if (c.r === 14) e += st.n <= 3 ? 0.7 : 0.5; else if (c.r === 13) e += 0.25; }); return Math.round(e); },
     ai: function (st, seat, level) {
       if (st.phase === 'choose') { var cnt = [0, 0, 0, 0]; st.hands[seat].forEach(function (c) { if (c.s < 4) cnt[c.s] += c.r; }); return { trump: cnt.indexOf(Math.max.apply(null, cnt)) }; }
-      if (st.phase === 'bid') { var b = Math.min(st.k, WZ.est(st, st.hands[seat])); if (level === 'easy') b = Math.max(0, Math.min(st.k, b + rnd(3) - 1)); return { bid: b }; }
+      if (st.phase === 'bid') { var b = Math.max(0, Math.min(st.k, WZ.est(st, st.hands[seat]) + (WZ.OFF[level] || 0))); if (level === 'easy') b = Math.max(0, Math.min(st.k, b + rnd(5) - 2)); return { bid: b }; }
       var L = WZ.legal(st, seat), pw = function (c) { return c.r === 15 ? 200 : c.r === 0 ? -1 : c.r + (c.s === st.trump ? 30 : 0); };
-      if (level === 'easy' && Math.random() < 0.3) return { card: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.5) return { card: pick(L).id };
       var want = st.tricks[seat] < st.bids[seat];
       if (!st.trick.length) return { card: L.slice().sort(function (a, b) { return want ? pw(b) - pw(a) : pw(a) - pw(b); })[0].id };
       return { card: tkChoose(st, WZ, seat, L, want, pw).id };
@@ -4378,8 +4406,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     view: function (st, P) {
       var out = trickView(st, P, WZ, function (i) { return st.bids[i] == null ? 'no bid' : 'bid ' + st.bids[i] + ', won ' + st.tricks[i]; });
       var tr = st.trump == null ? 'no trump' : 'trump ' + SN[st.trump];
-      if (st.phase === 'choose' && st.dealer === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('A wizard was turned up. Choose trump:') + '<div class="bids">' + [0, 1, 2, 3].map(function (s) { return '<button type="button" class="btn" data-pa="suit" data-v="' + s + '">' + SU[s] + ' ' + SN[s] + '</button>'; }).join('') + '</div>';
-      if (st.phase === 'bid' && st.bidder === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Round ' + st.k + ', ' + tr + '. How many tricks will you take?') + bidButtons(0, st.k, null, Math.min(st.k, WZ.est(st, st.hands[0])));
+      if (st.phase === 'choose' && st.dealer === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Choose trump.') + '<div class="bids">' + [0, 1, 2, 3].map(function (s) { return '<button type="button" class="btn" data-pa="suit" data-v="' + s + '">' + SU[s] + ' ' + SN[s] + '</button>'; }).join('') + '</div>';
+      if (st.phase === 'bid' && st.bidder === 0) return out + handButtons(st.hands[0], { can: function () { return false; } }) + note('Round ' + st.k + ', ' + tr + '.') + bidButtons(0, st.k, null, easyMode() ? Math.min(st.k, WZ.est(st, st.hands[0])) : null);
       return out + playableHand(st, P, WZ) + note('Round ' + st.k + ', ' + tr + '. You bid ' + (st.bids[0] == null ? '–' : st.bids[0]) + ' and have won ' + st.tricks[0] + '.');
     },
     doneLine: function (st, res) { return (res[0].tricks === res[0].bid ? 'Exact! ' : '') + 'You score ' + res[0].pts + ' this round.'; },
@@ -4410,6 +4438,13 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function selCards(P, h) { var s = P.ui.sel || []; return h.filter(function (c) { return s.indexOf(c.id) >= 0; }); }
   function drawFrom(st) { if (!st.stock.length) return null; return st.stock.pop(); }
   // Least-deadwood helper for computer players: the best card to throw from a hand.
+  function sloppyDiscard(hand, o, avoid, level, any) {
+    var best = bestDiscard(hand, o, avoid);
+    if (level !== 'easy' || Math.random() >= (any ? 0.35 : 0.45)) return best;
+    var loose = (any ? hand : MELD.best(hand, o).deadCards).filter(function (c) { return c.id !== avoid && !(o.keep && o.keep(c)); });
+    if (!loose.length) return best;
+    var c = pick(loose); return { c: c, dead: MELD.best(hand.filter(function (x) { return x !== c; }), o).dead };
+  }
   function bestDiscard(hand, o, avoid) {
     var best = null;
     hand.forEach(function (c) {
@@ -4443,7 +4478,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var withTop = top ? bestDiscard(h.concat([top]), GIN_O, top.id) : null;
       var take = top && !st.noPile && withTop.dead < cur - (level === 'easy' ? 4 : 1) && MELD.best(h.concat([top]), GIN_O).melds.some(function (m) { return m.cards.indexOf(top) >= 0; });
       if (st.phase === 'up') return take ? { draw: 'pile', auto: true } : { pass: 1 };
-      return { draw: take ? 'pile' : 'stock', auto: true };
+      return { draw: take ? 'pile' : 'stock', auto: true, lvl: level };
     },
     act: function (a, el, st, P) {
       if (st.phase === 'up') { if (a === 'pile') return { draw: 'pile' }; if (a === 'uppass') return { pass: 1 }; return null; }
@@ -4467,7 +4502,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         h.push(c); st.took = mv.draw === 'pile' ? c.id : null; st.phase = 'act'; st.noPile = false;
         msg = seat === 0 ? (mv.draw === 'pile' ? 'You take the ' + nameOf(c) + '. Now discard.' : 'You draw the ' + nameOf(c) + '. Now discard.') : st.names[seat] + (mv.draw === 'pile' ? ' takes the ' + nameOf(c) + '.' : ' draws from the stock.');
         if (mv.auto) {
-          var d = bestDiscard(h, GIN_O, st.took), knock = d.dead === 0 || (d.dead <= 10 && (st.level === 'easy' || d.dead <= 6 || st.stock.length < 14));
+          var lv = mv.lvl || st.level, d = sloppyDiscard(h, GIN_O, st.took, lv), knock = d.dead === 0 || (d.dead <= 10 && (lv === 'easy' || d.dead <= 6 || st.stock.length < 14));
           var r2 = GIN.apply(st, seat, { discard: d.c.id, knock: knock });
           return { msg: msg + ' ' + r2.msg, pause: r2.pause };
         }
@@ -4524,10 +4559,10 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         var kr = MELD.best(st.hands[1], GIN_O);
         out += '<p class="tinfo">Computer’s hand</p>' + kr.melds.map(function (m) { return meldRow(m.cards); }).join('') + (kr.deadCards.length ? meldRow(kr.deadCards, ' class="meld dead"', 'deadwood') : '');
       }
-      out += handButtons(ar.cards, { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel === c; }, mark: function (c) { return ar.inMeld[c.id]; } });
+      out += handButtons(ar.cards, { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel === c; }, mark: function (c) { return easyMode() && ar.inMeld[c.id]; } });
       var after = sel ? MELD.best(st.hands[0].filter(function (c) { return c !== sel; }), GIN_O).dead : null;
-      if (my && st.phase === 'act') out += btns([btn('discard', 'Discard', true, sel ? '' : ' disabled'), btn('knock', after === 0 ? 'Gin!' : 'Knock' + (after != null ? ' (' + after + ')' : ''), false, after != null && after <= 10 ? '' : ' disabled')]);
-      return out + note('Outlined cards are in melds. Deadwood: ' + ar.dead + '.' + (my && st.phase === 'up' ? ' Tap the face-up card to take it, or pass.' : my && st.phase === 'draw' ? (st.noPile ? ' Draw from the stock.' : ' Tap the stock or the discard to draw.') : my ? ' Tap a card, then Discard or Knock.' : ''));
+      if (my && st.phase === 'act') out += btns([btn('discard', 'Discard', true, sel ? '' : ' disabled'), btn('knock', after === 0 ? 'Gin!' : 'Knock' + (after != null && easyMode() ? ' (' + after + ')' : ''), false, after != null && after <= 10 ? '' : ' disabled')]);
+      return out + note(easyMode() ? 'Deadwood: ' + ar.dead + '.' : '');
     },
     doneLine: function (st, res) {
       if (res.how === 'dead') return 'No score: the stock ran out.';
@@ -4628,7 +4663,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += '<div class="pilespread"><span class="ml">Discard pile (tap a card to take it and everything above)</span><span class="mcards">' + st.pile.map(function (c, i) { return my && st.phase === 'draw' ? '<button type="button" class="card' + cardCls(c) + '" data-pa="pcard" data-i="' + i + '" aria-label="' + esc(nameOf(c)) + '">' + faceOf(c) + '</button>' : showCard(c); }).join('') + '</span></div>';
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel.indexOf(c.id) >= 0; }, mark: function (c) { return c.id === st.need; } });
       out += btns(my && st.phase === 'act' ? [btn('meld', 'Meld', false, sel.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel.length === 1 ? '' : ' disabled')] : []);
-      out += note(my ? (st.phase === 'draw' ? 'Draw from the stock or take from the discard pile.' : 'Select cards and tap Meld, or select one card and tap a meld to add it. Finish by discarding.' + (st.need ? ' The outlined card must be melded this turn.' : '')) : '');
+      out += note(my && st.need ? 'Meld the outlined card this turn.' : '');
       return out + '<div class="melds">' + (st.melds.length ? st.melds.map(function (m, j) { return meldRow(m.cards, ' data-pa="mtarget" data-i="' + j + '" role="button"', st.names[m.owner]); }).join('') : '<span class="pempty">No melds yet</span>') + '</div>';
     },
     doneLine: function (st, res) { return 'You score ' + res[0].pts + ' this hand.'; },
@@ -4659,14 +4694,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     }
     return out;
   }
-  function fcOpts(k) { return { wild: function (c) { return c.r === 0 || c.r === k; }, val: function (c) { return c.r === 0 ? 50 : c.r === k ? 20 : c.r; }, minSet: 3, minRun: 3 }; }
+  function fcOpts(k) { var w = function (c) { return c.r === 0 || c.r === k; }; return { wild: w, keep: w, val: function (c) { return c.r === 0 ? 50 : c.r === k ? 20 : c.r; }, minSet: 3, minRun: 3 }; }
   var FC = GMS.fivecrowns = {
     help: 'Round one deals 3 cards, then one more each round up to 13. Jokers and the rank matching the number of cards are wild. Draw, then discard. Go out when your whole hand (after discarding) forms books of 3 or more of a rank and runs of 3 or more in a suit. Everyone else then gets one more turn. Cards you can’t use count against you: face value, wilds 20, jokers 50. Lowest total wins.',
     deal: function (ctx) {
       var k = ctx.round + 3, d = deckOf(range(3, 13), [0, 1, 2, 3, 4], 2);
       for (var i = 0; i < 6; i++) d.push(mkCard(0, 5)); shuffle(d);
       var hands = []; for (i = 0; i < ctx.n; i++) hands.push(d.splice(0, k));
-      var st = { n: ctx.n, k: k, hands: hands, stock: d.slice(0, -1), pile: [d[d.length - 1]], phase: 'draw', next: (ctx.dealer + 1) % ctx.n, dealer: ctx.dealer, names: names(ctx), outBy: -1, left: -1 };
+      var st = { n: ctx.n, k: k, hands: hands, stock: d.slice(0, -1), pile: [d[d.length - 1]], phase: 'draw', next: (ctx.dealer + 1) % ctx.n, dealer: ctx.dealer, names: names(ctx), outBy: -1, left: -1, level: ctx.level };
       hands.forEach(function (h) { FC.sort(st, h); });
       return st;
     },
@@ -4678,12 +4713,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var o = fcOpts(st.k), h = st.hands[seat], top = st.pile[st.pile.length - 1];
       var withTop = top ? bestDiscard(h.concat([top]), o, top.id) : null;
       var take = top && (o.wild(top) || withTop.dead < MELD.best(h, o).dead - (level === 'easy' ? 6 : 0));
-      return { draw: take ? 'pile' : 'stock', auto: true };
+      // Never let the table go round and round on the discard pile: after a full lap, draw.
+      if ((st.pileRun || 0) >= st.n) take = false;
+      return { draw: take ? 'pile' : 'stock', auto: true, lvl: level };
     },
     act: function (a, el, st, P) {
       var ui = P.ui;
       if (a === 'fcbreak') return { unstage: +el.dataset.i };
-      if (a === 'fcauto') return { autostage: 1 };
+      if (a === 'fcauto' && easyMode()) return { autostage: 1 };
       if (a === 'fcchoice' && ui.pending) return { stage: ui.pending, label: ui.choices[+el.dataset.i] };
       if (st.phase === 'draw') { if (a === 'stock') return { draw: 'stock' }; if (a === 'pile') return { draw: 'pile' }; if (a === 'card') return selToggle(P, el.dataset.id); return null; }
       if (a === 'card') { ui.choices = null; return selToggle(P, el.dataset.id); }
@@ -4694,9 +4731,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         if (it.length === 1) return { stage: sel.map(function (c) { return c.id; }), label: it[0] };
         ui.pending = sel.map(function (c) { return c.id; }); ui.choices = it; P.msg = 'How should the wild cards count?'; return true;
       }
-      if (sel.length !== 1) { if (a === 'discard' || a === 'out') P.msg = 'Select just the one card to discard.'; return a === 'discard' || a === 'out' ? true : null; }
+      if (sel.length !== 1) { if (a === 'discard') { P.msg = 'Select one card to discard.'; return true; } return null; }
       if (a === 'discard') return { discard: sel[0].id };
-      if (a === 'out') return { discard: sel[0].id, out: true };
     },
     apply: function (st, seat, mv) {
       var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat], o = fcOpts(st.k);
@@ -4710,11 +4746,12 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return { msg: r0.melds.length ? 'Arranged ' + r0.melds.length + (r0.melds.length === 1 ? ' group.' : ' groups.') : 'Nothing more fits together yet.' };
       }
       if (mv.draw) {
+        st.pileRun = mv.draw === 'pile' ? (st.pileRun || 0) + 1 : 0;
         var c = mv.draw === 'pile' ? st.pile.pop() : st.stock.length ? st.stock.pop() : st.pile.shift();
         h.push(c); st.phase = 'act'; FC.sort(st, h);
         var msg = seat === 0 ? 'You ' + (mv.draw === 'pile' ? 'take' : 'draw') + ' the ' + nameOf(c) + '.' : who + (mv.draw === 'pile' ? ' takes the ' + nameOf(c) + '.' : ' draws.');
         if (mv.auto) {
-          var d = bestDiscard(h, o, mv.draw === 'pile' ? c.id : null);
+          var d = sloppyDiscard(h, o, mv.draw === 'pile' ? c.id : null, mv.lvl || st.level, true);
           var r = FC.apply(st, seat, { discard: d.c.id, out: d.dead === 0 && st.outBy < 0 });
           return { msg: msg + ' ' + r.msg, pause: r.pause };
         }
@@ -4723,6 +4760,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var dc = takeIds(h, [mv.discard])[0]; st.pile.push(dc);
       st.staged[seat] = mine.filter(function (gp) { return gp.ids.indexOf(dc.id) < 0; }); mine = st.staged[seat];
       var m = who + (seat === 0 ? ' discard the ' : ' discards the ') + nameOf(dc) + '.';
+      // Discarding your last loose card, with everything else in your groups, takes you out.
+      if (!mv.out && st.outBy < 0 && mine.length && !fcLoose(st, seat).length) mv = { discard: mv.discard, out: true };
       if (mv.out) {
         if (MELD.best(fcLoose(st, seat), o).dead) { h.push(dc); st.pile.pop(); return { msg: 'Those cards don’t all fit in books and runs yet.' }; }
         st.outBy = seat; st.left = st.n - 1; m += ' ' + (seat === 0 ? 'You go out! Everyone else gets one more turn.' : who + ' goes out! Everyone else gets one more turn.');
@@ -4731,7 +4770,15 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return { msg: m, pause: 700 };
     },
     // Your own groups stand as you made them; anything left over is arranged as well as it can be.
-    score: function (st) { var o = fcOpts(st.k); return st.hands.map(function (h, i) { var r = MELD.best(fcLoose(st, i), o); return { pts: i === st.outBy ? 0 : r.dead, r: r }; }); },
+    banner: function (st) { return st.outBy < 0 ? '' : (st.outBy === 0 ? 'You' : st.names[st.outBy]) + ' went out! ' + (st.left > 0 ? st.left + (st.left === 1 ? ' turn' : ' turns') + ' left.' : 'Last turn.'); },
+    score: function (st) {
+      var o = fcOpts(st.k), hard = st.level !== 'easy';
+      return st.hands.map(function (h, i) {
+        var loose = fcLoose(st, i), human = (st.humans || [0]).indexOf(i) >= 0;
+        var pts = hard && human ? sum(loose, o.val) : MELD.best(loose, o).dead;
+        return { pts: i === st.outBy ? 0 : pts };
+      });
+    },
     record: function (g, st, res, P) { var r = rowFor(g), cid = scoreCol(g).id; P.seats.forEach(function (s, i) { setCell(r, s.pid, cid, res[i].pts); }); },
     over: function (g) { return g.rounds.every(function (r) { return !rowEmpty(r); }); },
     view: function (st, P) {
@@ -4739,14 +4786,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var staged = (st.staged && st.staged[0]) || [], loose = fcLoose(st, 0), ar = arrangedHand(loose, o);
       var out = seatChips(P, function (i) { return st.hands[i].length + ' cards' + (i === st.outBy ? ' · out' : ''); }, st.next > 0 && st.left !== 0 ? st.next : -1) + pilesHTML(st, my);
       if (P.ui.choices) out += '<div class="bids kkch">' + P.ui.choices.map(function (t, i) { return '<button type="button" class="btn" data-pa="fcchoice" data-i="' + i + '">' + esc(t) + '</button>'; }).join('') + '</div>';
-      out += handButtons(ar.cards, { can: function () { return my; }, picked: function (c) { return sels.indexOf(c) >= 0; }, mark: function (c) { return ar.inMeld[c.id]; } });
-      var after = sel ? MELD.best(loose.filter(function (c) { return c !== sel; }), o).dead : null;
-      out += btns(my && st.phase === 'act' ? [btn('fcgroup', 'Group', false, sels.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel ? '' : ' disabled'), st.outBy < 0 ? btn('out', 'Go out', false, after === 0 ? '' : ' disabled') : ''] : []);
-      out += note('Wild: ' + (RN[st.k] || st.k) + 's and jokers. Select cards and tap Group to make a book or run, or let the outline guide you. Loose cards would count ' + ar.dead + '.' + (st.outBy >= 0 ? ' ' + st.names[st.outBy] + ' went out: this is the last turn.' : ''));
-      out += '<p class="tinfo">Your books and runs' + (staged.length ? ' · tap one to break it up' : '') + '</p><div class="melds fcg">' + (staged.length ? staged.map(function (gp, i) {
+      var easy = easyMode();
+      out += handButtons(easy ? ar.cards : loose, { can: function () { return my; }, picked: function (c) { return sels.indexOf(c) >= 0; }, mark: function (c) { return easy && ar.inMeld[c.id]; } });
+      out += btns(my && st.phase === 'act' ? [btn('fcgroup', 'Group', false, sels.length >= 3 ? '' : ' disabled'), btn('discard', loose.length === 1 && staged.length && st.outBy < 0 ? 'Discard and go out' : 'Discard', true, sel ? '' : ' disabled')] : []);
+      out += note('Wild: ' + (RN[st.k] || st.k) + 's and jokers.' + (easy ? ' Loose: ' + ar.dead + '.' : '') + (st.outBy >= 0 ? ' ' + st.names[st.outBy] + ' went out: last turn.' : ''));
+      out += '<p class="tinfo">Your books and runs</p><div class="melds fcg">' + (staged.length ? staged.map(function (gp, i) {
         var cards = gp.ids.map(function (id) { return st.hands[0].filter(function (c) { return c.id === id; })[0]; }).filter(Boolean);
         return meldRow(cards, ' data-pa="fcbreak" data-i="' + i + '" role="button"', gp.label);
-      }).join('') : '<span class="pempty">None yet</span>') + (my ? '<button type="button" class="btn small" data-pa="fcauto">Arrange for me</button>' : '') + '</div>';
+      }).join('') : '<span class="pempty">None yet</span>') + (my && easy ? '<button type="button" class="btn small" data-pa="fcauto">Arrange for me</button>' : '') + '</div>';
       return out;
     },
     doneLine: function (st, res) { return res[0].pts === 0 ? 'You finish the round with nothing against you.' : 'You have ' + res[0].pts + ' left against you.'; },
@@ -4896,7 +4943,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel === c; } });
       var can = my && st.phase === 'act' && !st.laid[0] && p10Find(st.hands[0], PH[st.phases[0]]);
       out += btns(my && st.phase === 'act' ? [!st.laid[0] ? btn('lay', 'Lay down phase', false, can ? '' : ' disabled') : '', btn('discard', 'Discard', true, sel ? '' : ' disabled')] : []);
-      out += note('Your phase ' + st.phases[0] + ': ' + PHN[st.phases[0]] + (st.laid[0] ? ' (laid down). Select a card and tap a group to add it.' : '.'));
+      out += note('Phase ' + st.phases[0] + ': ' + PHN[st.phases[0]] + (st.laid[0] ? ' (laid down).' : '.'));
       return out + '<div class="melds">' + (st.groups.length ? st.groups.map(function (gp, j) { return meldRow(gp.cards, ' data-pa="mtarget" data-i="' + j + '" role="button"', st.names[gp.owner] + ': ' + gp.type + (gp.type === 'run' ? ' ' + gp.lo + '–' + gp.hi : '')); }).join('') : '<span class="pempty">No phases laid down yet</span>') + '</div>';
     },
     doneLine: function (st, res) { return res[0].laid ? 'You completed phase ' + res[0].ph + '.' : 'You didn’t complete phase ' + res[0].ph + ' this round.'; },
@@ -5063,7 +5110,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += pilesHTML(st, my, { pileNote: st.pile.length + (st.frozen ? ' · frozen' : '') });
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel.indexOf(c.id) >= 0; } });
       out += btns(my && st.phase === 'act' ? [btn('meld', 'Meld', false, sel.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel.length === 1 ? '' : ' disabled')] : []);
-      out += note(my ? (st.phase === 'draw' ? 'Draw two from the stock, or take the pile.' : 'Select cards and tap Meld, or tap one of your melds to add them. End by discarding one card.') : '');
+      out += note('');
       out += '<p class="tinfo">Your melds' + (st.red3[0].length ? ' · red threes: ' + st.red3[0].length : '') + (st.melded[0] ? '' : ' · first meld needs ' + st.mins[0]) + '</p><div class="melds">' + ownMelds(st, 0, P) + '</div>';
       return out + '<p class="tinfo">Computer’s melds</p><div class="melds">' + ownMelds(st, 1, P) + '</div>';
     },
@@ -5112,7 +5159,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       if (!h.length) return { done: 1 };
       var dead = r.deadCards.filter(function (c) { return !isWild(c); }); if (!dead.length) dead = h.slice();
       dead.sort(function (a, b) { return BB_V(a) - BB_V(b); });
-      return { discard: dead[0].id };
+      return { discard: (level === 'easy' && Math.random() < 0.45 ? pick(dead) : dead[0]).id };
     },
     act: function (a, el, st, P) {
       if (st.phase === 'draw') { if (a === 'stock') return { draw: 1 }; if (a === 'pile' && st.pile.length) return { take: 1 }; return null; }
@@ -5162,7 +5209,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += pilesHTML(st, my, { pileNote: st.pile.length + ' in pile' });
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel.indexOf(c.id) >= 0; } });
       out += btns(my && st.phase === 'act' ? [btn('meld', 'Meld', false, sel.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel.length === 1 ? '' : ' disabled')] : []);
-      out += note(my ? (st.phase === 'draw' ? 'Draw from the stock, or take the whole discard pile.' : 'Select cards and tap Meld, or tap one of your melds to add them. End by discarding.') : '');
+      out += note('');
       out += '<p class="tinfo">Your melds' + (st.tookSpare[0] ? ' · biribaki taken' : '') + '</p><div class="melds">' + ownMelds(st, 0, P) + '</div>';
       return out + '<p class="tinfo">Computer’s melds</p><div class="melds">' + ownMelds(st, 1, P) + '</div>';
     },
@@ -5223,10 +5270,12 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     },
     cpuToss: function (st, level, seat) {
       seat = seat == null ? 1 : seat;
+      // Easy often just throws two cards it doesn't think about.
+      if (level === 'easy' && Math.random() < 0.5) return shuffle(st.hands[seat].slice()).slice(0, 2).map(function (c) { return c.id; });
       var h = st.hands[seat], best = null, seen = st.hands[seat];
       var deck = deckOf(range(1, 13), [0, 1, 2, 3]).filter(function (c) { return !seen.some(function (x) { return x.r === c.r && x.s === c.s; }); });
       for (var i = 0; i < 6; i++) for (var j = i + 1; j < 6; j++) {
-        var keep = h.filter(function (_, k) { return k !== i && k !== j; }), v = CB.keepValue(keep, [h[i], h[j]], st.dealer === seat, deck) + (level === 'easy' ? Math.random() * 6 : 0);
+        var keep = h.filter(function (_, k) { return k !== i && k !== j; }), v = CB.keepValue(keep, [h[i], h[j]], st.dealer === seat, deck) + (level === 'easy' ? Math.random() * 16 : 0);
         if (!best || v > best.v) best = { v: v, ids: [h[i].id, h[j].id] };
       }
       return best.ids;
@@ -5236,7 +5285,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       if (st.phase === 'crib') return { crib: CB.cpuToss(st, level, 0) };
       var L = CB.canPlay(st, seat);
       if (!L.length) return { go: 1 };
-      if (level === 'easy' && Math.random() < 0.35) return { play: pick(L).id };
+      if (level === 'easy' && Math.random() < 0.75) return { play: pick(L).id };
       var best = null;
       L.forEach(function (c) {
         var cnt = st.count + cv(c), v = pegPoints(st.seq.concat([c]), cnt).p * 10;
@@ -5393,10 +5442,10 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var out = seatChips(P, function (i) { return st.hands[i].length + (st.hands[i].length === 1 ? ' card · Uno!' : ' cards'); }, st.next > 0 && !st.end ? st.next : -1);
       out += '<div class="piles"><button type="button" class="pilebtn" data-pa="stock"' + (my && st.drawn == null ? '' : ' disabled') + '><span class="card back"></span><span>' + (my && st.drawn == null ? 'draw' : st.stock.length + ' left') + '</span></button>' +
         '<div class="pilebtn">' + showCard(top) + '<span class="ucolor uc' + st.color + '">' + UC[st.color] + '</span></div><span class="dirn">' + (st.dir > 0 ? '↻' : '↺') + '</span></div>';
-      if (P.ui.wild) return out + note('Choose a colour:') + '<div class="bids">' + UC.map(function (c, i) { return '<button type="button" class="btn ucb uc' + i + '" data-pa="color" data-v="' + i + '">' + c + '</button>'; }).join('') + '</div>';
+      if (P.ui.wild) return out + note('Choose a colour.') + '<div class="bids">' + UC.map(function (c, i) { return '<button type="button" class="btn ucb uc' + i + '" data-pa="color" data-v="' + i + '">' + c + '</button>'; }).join('') + '</div>';
       out += handButtons(st.hands[0], { can: function (c) { return my && UNO.fits(st, c) && (st.drawn == null || c.id === st.drawn); } });
       if (my && st.drawn != null) out += btns([btn('pass', 'Keep it')]);
-      return out + note(my ? (st.drawn != null ? 'Play the card you drew, or keep it.' : 'Play a matching card, or tap the deck to draw.') : '');
+      return out + note('');
     },
     doneLine: function (st, res) { return (st.winner === 0 ? 'You win the round and score ' : st.names[st.winner] + ' wins the round and scores ') + res.pts[st.winner] + '.'; },
     nextLabel: 'Next round'
@@ -5440,6 +5489,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       if (st.phase === 'draw') { var p = GOLF.place(g, top); return p.gain >= (level === 'easy' ? 1 : 3) ? { draw: 'pile' } : { draw: 'stock' }; }
       if (st.phase === 'hold') {
         var b = GOLF.place(g, st.hold);
+        // Easy sometimes puts the card in the wrong place, or throws away a useful one.
+        if (level === 'easy' && Math.random() < 0.35) return st.from === 'pile' || Math.random() < 0.5 ? { swap: rnd(g.length) } : { toss: 1 };
         if (b.gain > 0 || st.from === 'pile') return { swap: b.i };
         var down = g.map(function (x, i) { return x.up ? -1 : i; }).filter(function (i) { return i >= 0; });
         if (st.endBy >= 0 || down.length <= 1) return { swap: b.i };
@@ -5471,6 +5522,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return mine ? '<button type="button" class="card' + (x.up ? cardCls(x.c) : ' back') + '" data-pa="slot" data-i="' + i + '"' + (can(i) ? '' : ' disabled') + ' aria-label="' + (x.up ? esc(nameOf(x.c)) : 'face-down card') + '">' + inner + '</button>' : (x.up ? showCard(x.c, ' mini') : '<span class="card back mini"></span>');
       }).join('') + '</div>';
     },
+    banner: function (st) { return st.endBy < 0 ? '' : (st.endBy === 0 ? 'You' : st.names[st.endBy]) + ' turned up every card! ' + (st.left > 0 ? st.left + (st.left === 1 ? ' turn' : ' turns') + ' left.' : 'Last turn.'); },
     view: function (st, P) {
       var my = GOLF.turn(st) === 0, ph = st.phase;
       var out = '<div class="seatrow">' + P.seats.map(function (s, i) { return i ? '<div class="seat' + (st.next === i && st.left !== 0 ? ' on' : '') + '"><span class="sn">' + esc(s.name) + '</span>' + GOLF.gridHTML(st.grids[i], false) + '<span class="si">showing ' + golfKnown(st.grids[i]) + '</span></div>' : ''; }).join('') + '</div>';
@@ -5478,7 +5530,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += '<div class="trick gold"><div class="tslot">' + (st.hold && my ? showCard(st.hold) : '<span class="card ghostcard"></span>') + '<span>In your hand</span></div></div>';
       out += GOLF.gridHTML(st.grids[0], true, function (i) { return my && (ph === 'hold' || ((ph === 'flip' || ph === 'flipone') && !st.grids[0][i].up)); });
       out += btns(my && ph === 'hold' && st.from === 'stock' ? [btn('toss', 'Throw it away')] : []);
-      return out + note('Your visible total: ' + golfKnown(st.grids[0]) + ' (face-down cards counted as 5).' + (st.endBy >= 0 ? ' Last turn!' : ''));
+      return out + note((easyMode() ? 'Showing: ' + golfKnown(st.grids[0]) + '.' : '') + (st.endBy >= 0 ? ' Last turn.' : ''));
     },
     doneLine: function (st, res) { return 'You score ' + res.pts[0] + ' on this hole.'; },
     detail: function (st, res, P) { return resTable(P, res.pts.map(function (p, i) { return { name: st.names[i], v: [p] }; }), ['Points']); },
@@ -5598,7 +5650,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var stuck = my && !MT.any(st, 0), opening = my && st.opening[0];
       if (opening && st.laid && !stuck) out += btns([btn('endopen', 'End my turn')]);
       else if (stuck) out += btns([!st.drew && st.yard.length ? btn('draw', 'Draw a domino', true) : btn('pass', 'Pass', true)]);
-      return out + note(opening ? 'Opening turn: lay as many dominoes as you can on your own train.' : st.pending >= 0 ? 'A double must be covered first.' : my ? (stuck ? 'Nothing fits.' : selT ? 'Tap a highlighted train.' : 'Tap a domino to play it.') : '') + note(st.yard.length + ' in the boneyard.');
+      return out + note(opening ? 'Opening turn.' : st.pending >= 0 ? 'Cover the double.' : '') + note(st.yard.length + ' in the boneyard.');
     },
     doneLine: function (st, res) { return 'You have ' + res.pts[0] + ' pips left.'; },
     detail: GOLF.detail,
@@ -5705,7 +5757,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         var j = YZ.joker(st, 0);
         out += '<div class="ycats">' + YZ.open(st, 0).map(function (c) { var s = yScore(c, st.dice, j); return '<button type="button" class="btn small' + (s ? '' : ' zero') + '" data-pa="cat" data-v="' + esc(c) + '">' + esc(c) + ' <b>' + s + '</b></button>'; }).join('') + '</div>';
       }
-      return out + note(rolled ? (st.rolls ? 'Tap dice to hold them, roll again, or score in a box.' : 'Choose a box to score.') : '');
+      return out + note('');
     },
     doneLine: function () { return 'All boxes are filled.'; }
   };
@@ -5733,7 +5785,69 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       for (var c = 0; c < 5; c++) { var top = st.disc[c][st.disc[c].length - 1]; if (top && c !== notColor && ex[c].length && top.r && LC.fits(ex[c], top) && top.r - (ex[c][ex[c].length - 1].r || 1) <= 2) return c; }
       return null;
     },
+    // Settings found by playing thousands of rounds against the earlier computer player.
+    K: { s1: 10, s2: 15, maxExp: 4, w: 18, wDeck: 28, gap: 3, rush: 6, take: 3, dc: 2, stall: 1 },
+    // Strategy: commit to a few colours you hold strongly, play them upward, and throw away what helps nobody.
+    aiHard: function (st, seat) {
+      var K = LC.K, h = st.hands[seat], ex = st.exp[seat], opp = st.exp[1 - seat], deckN = st.deck.length;
+      var info = [0, 1, 2, 3, 4].map(function (c) {
+        var e = ex[c], nums = e.filter(function (x) { return x.r; }), top = nums.length ? nums[nums.length - 1].r : 0;
+        var held = h.filter(function (x) { return x.s === c && x.r > top; }), heldW = nums.length ? 0 : h.filter(function (x) { return x.s === c && !x.r; }).length;
+        var hs = sum(held, function (x) { return x.r; }), playedSum = sum(nums, function (x) { return x.r; });
+        var ot = opp[c].length ? (opp[c][opp[c].length - 1].r || 1) : null;
+        return { c: c, started: e.length > 0, top: top, held: held, heldW: heldW, hs: hs, total: playedSum + hs, wagers: e.length - nums.length, oppTop: ot };
+      });
+      var startedN = info.filter(function (x) { return x.started; }).length;
+      // Is this colour one we mean to play? Started ones yes; otherwise only if held strongly and there's time.
+      var goal = function (I) { return I.started || (I.hs >= (deckN > 30 ? K.s1 : deckN > 18 ? K.s2 : 99) && startedN < K.maxExp); };
+      if (st.phase === 'draw') { var t = LC.drawPick2(st, seat, info, goal, st.justDisc); return { draw: t == null ? 'deck' : t }; }
+      var best = null;
+      h.forEach(function (card) {
+        var I = info[card.s]; if (!LC.fits(ex[card.s], card)) return;
+        var v = null;
+        if (card.r === 0) { if (!I.started || I.wagers) { if (I.hs >= K.w && deckN > K.wDeck) v = 5; } }
+        else if (goal(I)) {
+          var lowest = I.held.reduce(function (m, x) { return x.r && (!m || x.r < m.r) ? x : m; }, null);
+          if (lowest && lowest.r === card.r) {
+            // Jumping ahead wastes the lower cards still to come: costly early, cheap near the end.
+            var gap = card.r - Math.max(I.top, 1) - 1, early = deckN / 44 + 0.25;
+            v = I.started ? 10 - gap * K.gap * early : 4 - Math.max(0, card.r - 2) * K.gap * early + (I.hs - K.s1) * 0.3;
+            // When the deck is short, getting cards down beats waiting.
+            if (deckN <= K.rush) v += 8;
+          }
+        }
+        if (v != null && (!best || v > best.v)) best = { v: v, card: card };
+      });
+      // Discard the card least useful to us and to the other player.
+      var cost = function (card) {
+        var I = info[card.s], mine = goal(I) && (card.r ? card.r > I.top : !I.started) ? 10 + card.r : 0;
+        var theirs = I.oppTop != null && (card.r ? card.r > I.oppTop : I.oppTop === 1) ? 6 + card.r : 0;
+        return mine + theirs + card.r * 0.1;
+      };
+      var d = h.slice().sort(function (a, b) { return cost(a) - cost(b); })[0];
+      if (best && best.v > Math.min(K.dc, cost(d) * 0.5)) return { play: best.card.id, take: LC.drawPick2(st, seat, info, goal, -1) };
+      return { discard: d.id, take: LC.drawPick2(st, seat, info, goal, d.s) };
+    },
+    drawPick2: function (st, seat, info, goal, notColor) {
+      var best = null, deckN = st.deck.length;
+      // More cards to play than turns left: take from a discard pile to slow the deck down.
+      var toPlay = info.reduce(function (n, I) { return n + (goal(I) ? I.held.length : 0); }, 0);
+      if (LC.K.stall && toPlay > deckN / 2 + LC.K.stall) {
+        var opp = st.exp[1 - seat], pickC = null, low = 99;
+        for (var k = 0; k < 5; k++) { if (k === notColor) continue; var tp = st.disc[k][st.disc[k].length - 1]; if (!tp) continue; var ot = opp[k].length ? (opp[k][opp[k].length - 1].r || 1) : null; var use = (ot != null && tp.r > ot ? 10 : 0) + tp.r * 0.1; if (use < low) { low = use; pickC = k; } }
+        if (pickC != null) return pickC;
+      }
+      for (var c = 0; c < 5; c++) {
+        if (c === notColor) continue;
+        var top = st.disc[c][st.disc[c].length - 1]; if (!top) continue;
+        var I = info[c], v = -1;
+        if (top.r && top.r > I.top && (I.started || I.hs + top.r >= LC.K.s1)) v = top.r - (top.r - Math.max(I.top, 1) - 1) * 1.5 + (I.started ? 2 : 0);
+        if (v > LC.K.take && (!best || v > best.v)) best = { v: v, c: c };
+      }
+      return best ? best.c : null;
+    },
     ai: function (st, seat, level) {
+      if (level !== 'easy') return LC.aiHard(st, seat);
       if (st.phase === 'draw') { var t = LC.takeFor(st, seat, st.justDisc); return { draw: t == null ? 'deck' : t }; }
       var h = st.hands[seat], ex = st.exp[seat], left = st.deck.length, best = null;
       h.forEach(function (card) {
@@ -5815,8 +5929,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       }).join('') + '</div>';
       out += '<p class="tinfo">Your expeditions</p>' + exRow(0);
       out += handButtons(st.hands[0], { can: function () { return my && st.phase === 'play'; }, picked: function (c) { return sel === c; } });
-      out += btns(my && st.phase === 'play' ? [btn('play', 'Play to expedition', true, sel ? '' : ' disabled'), btn('discard', 'Discard', false, sel ? '' : ' disabled')] : []);
-      return out + note(my && !drawing ? 'Select a card, then play it or discard it.' : '') + '</div>';
+      // Drawing from the deck uses the same spot as Discard, so your thumb doesn't have to move.
+      out += btns(my && st.phase === 'play' ? [btn('play', 'Play to expedition', true, sel ? '' : ' disabled'), btn('discard', 'Discard', false, sel ? '' : ' disabled')] : drawing ? ['<span class="pspace"></span>', btn('deck', 'Draw from deck', true)] : []);
+      return out + note('') + '</div>';
     },
     doneLine: function (st, res) { return 'You score ' + res[0].pts + ' this round, the computer ' + res[1].pts + '.'; },
     detail: function (st, res, P) { return resTable(P, LCN.map(function (n, c) { return { name: n[0].toUpperCase() + n.slice(1), v: [res[0].each[c] == null ? '–' : res[0].each[c], res[1].each[c] == null ? '–' : res[1].each[c]] }; }), ['You', 'Computer']); },
@@ -5948,13 +6063,13 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         if (c && c.r <= 10 && dlNum(x)) return '<button type="button" class="card' + cardCls(x) + (tsel.indexOf(x.id) >= 0 ? ' picked' : '') + '" data-pa="tcard" data-id="' + x.id + '" aria-pressed="' + (tsel.indexOf(x.id) >= 0) + '" aria-label="' + esc(nameOf(x)) + '">' + faceOf(x) + '</button>';
         return showCard(x);
       }).join('') : '<span class="pempty">The table is empty</span>') + '</div>' + note(st.deck.length + ' cards left to deal.') + '</div>';
-      out += handButtons(st.hands[0], { can: function () { return my; }, picked: function (x) { return x === c; }, mark: function (x) { return my && dlCapture(st.table, x).length > 0; } });
+      out += handButtons(st.hands[0], { can: function () { return my; }, picked: function (x) { return x === c; }, mark: function (x) { return my && easyMode() && dlCapture(st.table, x).length > 0; } });
       if (c) {
         var items = st.table.filter(function (x) { return tsel.indexOf(x.id) >= 0; }), bv = dlBuildVal(st, 0, c, items), cap = dlCapture(st.table, c);
         out += btns([btn('dplay', cap.length ? 'Capture ' + dlCount(cap) + (dlCount(cap) === 1 ? ' card' : ' cards') : 'Lay it down', true), btn('dbuild', bv ? 'Build ' + bv : 'Build', false, bv ? '' : ' disabled')]);
-        return out + note(c.r <= 10 ? 'To build, tap table cards that add up with your ' + nameOf(c) + ' to a card you hold.' : 'Picture cards only capture the same rank.');
+        return out + note('');
       }
-      return out + note(my ? 'Tap a card to choose it. Outlined cards capture something.' + (DL.ownsBuild(st, 0) ? ' You have a build on the table to capture.' : '') : '');
+      return out + note('');
     },
     doneLine: function (st, res) { return 'Deal scored: you ' + res[0].total + ', the computer ' + res[1].total + '.'; },
     detail: function (st, res, P) { var rows = [['Cards taken', 'cards'], ['Most cards', 'most'], ['Card points', 'pts'], ['Xeri', 'xeri'], ['This deal', 'total']]; return '<div class="sheet"><table class="rtable"><thead><tr><th></th><th>You</th><th>Computer</th></tr></thead><tbody>' + rows.map(function (r) { return '<tr' + (r[1] === 'total' ? ' class="rt"' : '') + '><td class="dl">' + r[0] + '</td><td>' + res[0][r[1]] + '</td><td>' + res[1][r[1]] + '</td></tr>'; }).join('') + '</tbody></table></div>'; },
@@ -6112,7 +6227,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var cl = JSON.parse(JSON.stringify(st));
       for (var k = 0; k < 40; k++) {
         var mv = KK.ai(cl, seat, level, true);
-        if (!mv || mv.discard) { var h = cl.hands[seat], d = h.filter(function (c) { return mv && c.id === mv.discard; })[0]; return !cl.did || KK.safe(cl, seat, h, d); }
+        if (!mv) return false;
+        if (mv.discard) { var h = cl.hands[seat], d = h.filter(function (c) { return c.id === mv.discard; })[0]; return !cl.did || KK.safe(cl, seat, h, d); }
         KK.apply(cl, seat, mv);
       }
       return false;
@@ -6121,6 +6237,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var h = st.hands[seat], top = st.pile[st.pile.length - 1], easy = level === 'easy';
       if (st.phase === 'draw') {
         var useful = top && (kkWild(top) || (st.melded[seat] && st.melds.some(function (m) { return kkAdds(m, top).length; })) || MELD.best(h.concat([top]), KK_O).melds.some(function (m) { return m.cards.indexOf(top) >= 0; }));
+        if (top && (st.backs || {})[top.id] >= 2) useful = false;
         return useful && (!easy || Math.random() < 0.6) ? { draw: 'pile' } : { draw: 'stock' };
       }
       // A joker taken back must go out this turn.
@@ -6158,7 +6275,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
           if (kkAdds(st.melds[i], h[k]).length) return { add: h[k].id, to: i, pick: 0 };
         }
       }
+      if (!h.length) return null;
       var cand = h.filter(function (c) { return !kkWild(c); });
+      if (!cand.length && h.length > 1 && st.melded[seat]) { for (var mi = 0; mi < st.melds.length; mi++) if (kkAdds(st.melds[mi], h[0]).length) return { add: h[0].id, to: mi, pick: 0 }; }
       if (!cand.length) return { discard: h[0].id };
       var dead = MELD.best(h, KK_O).deadCards.filter(function (c) { return !kkWild(c); });
       var pool = dead.length ? dead : cand;
@@ -6171,7 +6290,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     discardProblem: function (st, seat, c) {
       var h = st.hands[seat];
       if (st.mustPlay && h.some(function (x) { return x.id === st.mustPlay; })) return 'Play the joker you took back before you discard.';
-      if (kkWild(c) && h.length > 1) return 'A joker can only be discarded as your last card.';
+      if (kkWild(c) && h.length > 1 && !KK.jokersStuck(st, seat)) return 'A joker can only be discarded as your last card.';
       if (st.did && !KK.safe(st, seat, h, c)) return 'You’ve melded this turn, but your ' + st.scores[seat] + ' plus the ' + (kkPts(h) - kkVal(c)) + ' left in your hand would reach 100. Meld or add more, or tap Undo.';
       return '';
     },
@@ -6218,8 +6337,15 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat], s3 = seat === 0;
       if (mv.draw) {
         var c;
-        if (mv.draw === 'pile') c = st.pile.pop();
-        else { if (!st.stock.length) { var top = st.pile.pop(); st.stock = shuffle(st.pile); st.pile = [top]; } c = st.stock.pop(); }
+        if (mv.draw === 'pile') { c = st.pile.pop(); st.backs = st.backs || {}; st.backs[c.id] = (st.backs[c.id] || 0) + 1; }
+        else {
+          if (!st.stock.length) {
+            st.reshuffles = (st.reshuffles || 0) + 1;
+            if (st.reshuffles > 2 || st.pile.length < 2) { st.end = true; st.winner = -1; return { msg: 'The stock has run out again: the round ends and everyone counts their hand.' }; }
+            var top = st.pile.pop(); st.stock = shuffle(st.pile); st.pile = [top];
+          }
+          c = st.stock.pop();
+        }
         h.push(c); KK.sort(h); st.phase = 'act'; st.did = false; st.mustPlay = null; KK.snapshot(st);
         return { msg: s3 ? 'You ' + (mv.draw === 'pile' ? 'take' : 'draw') + ' the ' + nameOf(c) + '.' : who + (mv.draw === 'pile' ? ' takes the ' + nameOf(c) + '.' : ' draws.') };
       }
@@ -6271,6 +6397,12 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       st.kkQueue = st.busted.filter(function (pid) { return humans.indexOf(pid) >= 0; });
       KK.nextAsk(g, st);
     },
+    // Only jokers left and nowhere to put one: the joker rule would leave no legal move, so a joker may be discarded.
+    jokersStuck: function (st, seat) {
+      var h = st.hands[seat]; if (!h.every(kkWild)) return false;
+      if (!st.melded[seat]) return h.length < 3;
+      return !st.melds.some(function (m) { return kkAdds(m, h[0]).length; });
+    },
     nextAsk: function (g, st) {
       st.kkAsk = null;
       while (st.kkQueue && st.kkQueue.length) { var pid = st.kkQueue.shift(); if (kkCanBuy(g, pid)) { st.kkAsk = { pid: pid, cost: kkCost(g, pid) }; return; } }
@@ -6292,10 +6424,10 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       out += handButtons(st.hands[0] || [], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel.indexOf(c.id) >= 0; }, mark: function (c) { return c.id === st.mustPlay; } });
       out += btns(my && st.phase === 'act' ? [btn('meld', 'Meld', false, sel.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel.length === 1 ? '' : ' disabled')] : []);
       var left = 100 - st.scores[0], hp = kkPts(st.hands[0] || []);
-      return out + note(my ? (st.phase === 'draw' ? 'Draw from the deck or take the top discard.' : 'Select cards and tap Meld, or select one card and tap a meld to add it or swap it for a joker. End by discarding.' + (st.mustPlay ? ' Play the outlined joker before discarding.' : '')) : '') +
-        note('You have ' + st.scores[0] + ' points; your hand holds ' + hp + '.' + (!st.melded[0] ? ' To meld, what’s left after discarding must be under ' + left + '.' : '')) + meldsHTML;
+      return out + note(my && st.mustPlay ? 'Play the outlined joker first.' : '') +
+        note('Score ' + st.scores[0] + (easyMode() ? ' · hand ' + hp : '')) + meldsHTML;
     },
-    doneLine: function (st, res, P) { return (st.winner === 0 ? 'You go out!' : st.names[st.winner] + ' goes out.') + ' You take ' + res.pts[0] + (res.pts[0] === 1 ? ' point.' : ' points.'); },
+    doneLine: function (st, res, P) { return (st.winner < 0 ? 'Nobody went out.' : st.winner === 0 ? 'You go out!' : st.names[st.winner] + ' goes out.') + ' You take ' + res.pts[0] + (res.pts[0] === 1 ? ' point.' : ' points.'); },
     detail: function (st, res, P) {
       var g = G(), out = resTable(P, P.seats.map(function (s, i) { return { name: st.names[i], v: [res.pts[i], total(g, s.pid) + kkMarks(g, s.pid)] }; }), ['This round', 'Total']);
       (st.busted || []).forEach(function (pid) {
@@ -6483,14 +6615,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return wrap('Peg board', ps.map(function (p) {
         var t = Math.max(0, Math.min(tg, total(g, p.id)));
         return '<div class="peg"><span class="pn">' + esc(p.name) + '</span><span class="pbar"><i style="width:' + (t / tg * 100) + '%"></i><b style="left:' + ((tg - 61) / tg * 100) + '%" title="Double skunk line"></b><b style="left:' + ((tg - 31) / tg * 100) + '%" title="Skunk line"></b></span><span class="pv">' + t + '</span></div>';
-      }).join('') + '<p class="note">Marks show the skunk lines at ' + (tg - 31) + ' and ' + (tg - 61) + '.</p>');
+      }).join(''));
     }
     if (name === 'Gin Rummy') {
       var boxes = {}, sc = scoreCol(g).id; ps.forEach(function (p) { boxes[p.id] = 0; });
       g.rounds.forEach(function (r) { if (r.label === 'Bonus') return; ps.forEach(function (p) { if (nv(r, p.id, sc) > 0) boxes[p.id]++; }); });
       var bonusDone = g.rounds.some(function (r) { return r.label === 'Bonus'; }), lead = ranked(g)[0];
       return wrap('Boxes (hands won)', '<p>' + ps.map(function (p) { return esc(p.name) + ' ' + boxes[p.id]; }).join(' · ') + '</p>' +
-        (!bonusDone && lead && lead.t >= 100 && !g.over ? '<button type="button" class="btn small" data-act="ginbonus">Add end-of-game bonuses</button><p class="note">100 for the game plus 25 a box; the winner’s total doubles if the loser never scored.</p>' : ''));
+        (!bonusDone && lead && lead.t >= 100 && !g.over ? '<button type="button" class="btn small" data-act="ginbonus">Add end-of-game bonuses</button>' : ''));
     }
     if (name === 'Phase 10') {
       return wrap('Phases', ps.map(function (p) {
@@ -6505,10 +6637,10 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (name === 'Farkle') {
       var hit = ps.filter(function (p) { return total(g, p.id) >= 10000; })[0];
       return wrap('Farkle', (hit && !g.over ? '<p class="gwarn">' + esc(hit.name) + ' has reached 10,000: final round, everyone else gets one more turn.</p>' : '') +
-        '<p class="note">Each player needs 500 in one turn to get on the board.</p>');
+        '');
     }
     if (name === 'Scrabble' && !g.over && !g.rounds.some(function (r) { return r.label === 'Tiles left'; })) {
-      return wrap('End of game', '<button type="button" class="btn small" data-act="tilesrow">Add a tiles-left row</button><p class="note">Enter each player’s unplayed tiles as a minus; the player who went out adds everyone else’s.</p>');
+      return wrap('End of game', '<button type="button" class="btn small" data-act="tilesrow">Add a tiles-left row</button>');
     }
     if (name === 'Golf' && g.rounds.length === 9 && !g.over) return wrap('Course', '<button type="button" class="btn small" data-act="golf18">Play 18 holes</button>');
     return '';
@@ -6554,6 +6686,9 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
     }
     PL.wasMine = mine;
+    var bn = PL.el.querySelector('.outbanner'), bt = bn ? bn.textContent : '';
+    if (bt && bt !== PL.lastBanner) { bn.classList.add('fresh'); try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch (e) {} }
+    PL.lastBanner = bt;
     var fresh = PL.flyKey !== PL.hKey;
     if (fresh) { PL.flyKey = PL.hKey; PL.flown = {}; }
     PL.el.querySelectorAll('[data-fly]').forEach(function (el) {
@@ -6797,7 +6932,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var tv = ui.toolDice && ui.toolDice.g === g.id ? ui.toolDice : null;
       out += '<div class="tooldice"><button type="button" class="btn small" data-act="troll" data-n="' + dice + '">Roll ' + dice + ' dice</button>' +
         (tv ? '<span class="dice">' + tv.v.map(function (v, i) { return '<button type="button" class="die' + (tv.h[i] ? ' sel' : '') + '" data-act="thold" data-i="' + i + '" aria-pressed="' + !!tv.h[i] + '" aria-label="Die showing ' + v + '">' + dieFace(v) + '</button>'; }).join('') + '</span>' : '') + '</div>' +
-        (tv ? '<p class="note">Tap dice to hold them before rolling again.</p>' : '');
+        '';
     }
     if (g.players.length > 1 && !g.over) {
       out += '<div class="toolrow"><button type="button" class="btn small" data-act="tstart">Pick who starts</button>' + (ui.toolStart && ui.toolStart.g === g.id ? '<span class="tpick">' + esc(ui.toolStart.name) + ' starts</span>' : '') + '</div>';
@@ -6819,6 +6954,14 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (act === 'tstart') { ui.toolStart = { g: g.id, name: g.players[rnd(g.players.length)].name }; return true; }
     return false;
   }
+
+  // In one-on-one games, call the computer by its name.
+  function withCpuName(g, html) {
+    var K = VSK[PL.kind]; if (K.team || (g.vs.cpus && g.vs.cpus.length > 1)) return html;
+    var n = esc(playerName(g, g.vs.cpu) || 'Computer'); if (n === 'Computer') return html;
+    return html.replace(/[Tt]he computer’s|[Cc]omputer’s/g, n + '’s').replace(/[Tt]he computer\b/g, n).replace(/\bComputer(:| ▲)/g, n + '$1');
+  }
+  function bannerHTML(t) { return t ? '<div class="outbanner" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>' + esc(forNames(t)) + '</span></div>' : ''; }
 
   /* New cards glow until you make your next move. Cards dealt at the start aren't marked. */
   function cardKey(c) { return c.id || (c.r + '-' + c.s); }
@@ -6997,6 +7140,11 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     return '<details class="chdetails"><summary><span class="chl">Chips' + (g.over || !net ? '' : ' so far') + '</span> ' + line + '</summary><p class="note">' + esc(CHIPRULE[name]) + '</p></details>';
   }
 
+  // Tuned by simulation: Hard calls trump readily and bids boldly; Easy is timid and plays loosely.
+  EU.TH = { easy: 7.6, hard: 5.6 };
+  OH.OFF = { easy: 0, hard: 0 };
+  WZ.OFF = { easy: 0, hard: 0 };
+  PN.OFF = { easy: 20, hard: 100 };
   R5.undoable = function (st, mv) { return !!(mv.meld || mv.lay || mv.take != null); };
   CN.undoable = function (st, mv) { return !!(mv.meld || mv.add || mv.take); };
   BB.undoable = function (st, mv) { return !!((mv.meld || mv.add) && st.hands[st.next].length > (mv.meld ? mv.meld.length : mv.add.length)); };
