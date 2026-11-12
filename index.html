@@ -264,6 +264,16 @@ html.playing, html.playing body { overflow: hidden; }
 .ptop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ptop .ptools { display: contents; }
 .ptop .psub { margin-left: auto; font-size: 12px; }
+.ptitle { display: flex; align-items: center; gap: 6px; }
+.ptitle .ph1 { flex: 1; min-width: 0; }
+.ph1 span { min-width: 0; overflow-wrap: anywhere; }
+.pmenu { flex: none; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.pmenu[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.pmenu svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.pmenubox { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+.pmenubox .btn { justify-content: flex-start; min-height: 44px; }
+.pmenubox .btn.on { border-color: var(--accent); color: var(--accent); }
+.pmenubox .psub { font-size: 12px; text-align: left; padding: 2px 4px; }
 .psub { font-size: 13px; color: var(--muted); text-align: right; }
 .ph1 { font-size: 22px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
 .pstands { display: flex; gap: 8px; }
@@ -527,7 +537,32 @@ button.pilebtn:not(:disabled) span:last-child { color: var(--accent); font-weigh
 .discs .lccol.cantake, .lcdeck.cantake { box-shadow: 0 0 0 3px var(--accent); }
 .lcempty { width: 48px; height: 70px; border: 2px dashed var(--lcb); border-radius: 7px; opacity: .5; }
 .lcdeck { display: flex; flex-direction: row; align-items: center; gap: 6px; background: none; border: 0; border-radius: 10px; padding: 4px 6px; font-size: 12px; line-height: 1.2; color: var(--muted); text-align: left; flex: none; }
-.lcdeck .card.back { width: 38px; height: 54px; }
+.msgrow { display: flex; gap: 10px; align-items: flex-start; }
+.msgrow .pmsg { flex: 1; min-width: 0; }
+.lcdeckwrap { flex: none; }
+.lcdeck { flex-direction: column; gap: 2px; padding: 3px; }
+.card.lcback { background: radial-gradient(ellipse 70% 60% at 50% 52%, #a88763 0 18%, #6b4b31 62%, #3f2a1b 100%); border: 2px solid #3f2a1b; display: grid; place-items: center; padding: 0; color: #f3e6d4; }
+.card.lcback svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.lccount { font-size: 12px; font-weight: 600; color: var(--muted); }
+.card .jk { color: #6a3fb5; display: flex; }
+.card .cr.jk .jst { width: 18px; height: 18px; }
+.card .cs.jk .jst { width: 30px; height: 30px; }
+.card.kj .cs.jk .jst { width: 16px; height: 16px; }
+.card.jest .jk { color: #5b4c86; }
+.mcards .card .cs.jk .jst { width: 18px; height: 18px; }
+.card.off { cursor: default; }
+.card.newcard, .dom[data-new] { box-shadow: 0 0 0 3px #3a8ee6, 0 0 14px rgba(58, 142, 230, .55); }
+.card.newcard.picked { box-shadow: 0 0 0 3px var(--accent), 0 0 14px rgba(58, 142, 230, .7); }
+.card.dragging { opacity: .25; }
+.card.lift { transform: translateY(-6px) scale(1.04); }
+.card.ghost { box-shadow: 0 8px 22px rgba(0, 0, 0, .3); transform: rotate(-3deg) scale(1.06); }
+.hand .card { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.kkgroup { background: var(--sunk); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+.kkgroup .ml { font-size: 12px; color: var(--muted); font-weight: 600; }
+.kkmelds { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+.kmeld { border-radius: 8px; cursor: pointer; padding: 2px; }
+.kmeld:hover, .kmeld:focus-visible { outline: 2px solid var(--accent); }
+.fcg { flex-direction: column; }
 .card.kj { background: #fff6e0; border-color: #c99a2e; box-shadow: inset 0 0 0 2px #e8c25a; }
 .card.kj .cs { color: #b8860b; }
 .kkch { flex-direction: column; }
@@ -2722,6 +2757,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     document.body.appendChild(el); document.documentElement.classList.add('playing');
     PL = { gid: gid, kind: g.vs.kind, el: el, timers: [], msg: '' };
     el.addEventListener('click', playClick);
+    dragInit(el);
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); playAct('leave'); } });
     if (!restoreLive(g)) START[PL.kind](g);
     playRender();
@@ -2737,7 +2773,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (!PL) return;
     if (a !== 'leave') PL.leaveArmed = false;
     if (a === 'leave') { saveLive(); closePlay(); render(); return; }
-    if (a === 'prules') { PL.rulesOpen = !PL.rulesOpen; playRender(); return; }
+    if (a === 'menu') { PL.menuOpen = !PL.menuOpen; playRender(); return; }
+    if (a === 'prules') { PL.rulesOpen = !PL.rulesOpen; PL.menuOpen = false; playRender(); return; }
     if (a === 'prtab') { PL.rulesTab = +b.dataset.i; playRender(); return; }
     if (a === 'speed') { nextSpeed(); playRender(); return; }
     if (a === 'hint') { var h = hintFor(); if (h) { PL.hint = h; PL.msg = 'Hint: ' + h.text; } playRender(); return; }
@@ -2760,7 +2797,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     var b = e.target.closest('[data-pa],[data-pt]');
     // While a taken pile is on show, a tap anywhere (except Leave) clears it straight away.
     if (PL && PL.skip && !(b && b.dataset.pa === 'leave')) { var go = PL.skip; PL.skip = null; go(); return; }
-    if (!b || b.disabled) return;
+    if (!b || b.disabled || b.getAttribute('aria-disabled') === 'true') return;
     if (b.dataset.pt != null) return playAct('point', b.dataset.pt);
     playAct(b.dataset.pa, b);
   }
@@ -2773,17 +2810,25 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (!PL) return;
     var g = G();
     if (!g || !vsOf(g)) { closePlay(); render(); return; }
+    trackNewCards();
     var K = VSK[PL.kind], body = VIEW[PL.kind](g), R = RULES[K.name], mine = isMyTurn();
-    var tools = '<div class="ptools">' + (R ? '<button type="button" class="btn small' + (PL.rulesOpen ? ' on' : '') + '" data-pa="prules" aria-expanded="' + !!PL.rulesOpen + '">Rules</button>' : '') +
-      '<button type="button" class="btn small" data-pa="speed" aria-label="Computer speed">Speed: ' + SPEEDNAME[speedKey()] + '</button>' +
-      (g.vs.level === 'easy' && mine ? '<button type="button" class="btn small" data-pa="hint">Hint</button>' : '') +
-      (VSK[PL.kind].gm && PL.undo && PL.undo.length && mine ? '<button type="button" class="btn small" data-pa="gmundo">Undo</button>' : '') + '</div>';
+    // Title row: the game and round, quick Hint and Undo when they apply, and a menu for everything else.
+    var sub = (K.sub ? esc(K.sub(g)) + ' · ' : g.vs.target ? 'Playing to ' + commas(g.vs.target) + (K.tunit || '') + ' · ' : '') + (g.vs.level === 'easy' ? 'Easy' : 'Hard');
+    var quick = (g.vs.level === 'easy' && mine ? '<button type="button" class="btn small" data-pa="hint">Hint</button>' : '') +
+      (VSK[PL.kind].gm && PL.undo && PL.undo.length && mine ? '<button type="button" class="btn small" data-pa="gmundo">Undo</button>' : '');
+    var menuBtn = '<button type="button" class="pmenu" data-pa="menu" aria-expanded="' + !!PL.menuOpen + '" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>';
+    var menu = PL.menuOpen ? '<div class="pmenubox" role="menu"><button type="button" class="btn" role="menuitem" data-pa="leave">← Score sheet</button>' +
+      (R ? '<button type="button" class="btn' + (PL.rulesOpen ? ' on' : '') + '" role="menuitem" data-pa="prules">' + (PL.rulesOpen ? 'Hide rules' : 'Rules') + '</button>' : '') +
+      '<button type="button" class="btn" role="menuitem" data-pa="speed">Computer speed: ' + SPEEDNAME[speedKey()] + '</button><p class="psub">' + sub + '</p></div>' : '';
     var rules = R && PL.rulesOpen ? '<div class="rules prules"><div class="tabs" role="tablist">' + TABS.map(function (n, i) { var on = i === (PL.rulesTab || 0); return '<button type="button" role="tab" class="tab' + (on ? ' on' : '') + '" aria-selected="' + on + '" data-pa="prtab" data-i="' + i + '">' + n + '</button>'; }).join('') + '</div><p role="tabpanel">' + esc(R[PL.rulesTab || 0] || '') + '</p></div>' : '';
     PL.el.innerHTML = '<div class="pwrap">' +
-      '<h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + '<span>' + esc(PL.title || K.name) + '</span></h1>' +
-      '<div class="ptop"><button type="button" class="btn small" data-pa="leave">← Sheet</button>' + tools +
-      '<span class="psub">' + (K.sub ? esc(K.sub(g)) + ' · ' : g.vs.target ? 'To ' + commas(g.vs.target) + (K.tunit || '') + ' · ' : '') + (g.vs.level === 'easy' ? 'Easy' : 'Hard') + '</span></div>' + rules +
+      '<div class="ptitle"><h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + '<span>' + esc(PL.title || K.name) + '</span></h1>' + quick + menuBtn + '</div>' + menu + rules +
       body + '</div>';
+    // Scores go to the very bottom, leaving the top of the screen for play.
+    var wrapEl = PL.el.querySelector('.pwrap'), stands = wrapEl && wrapEl.querySelector(':scope > .pstands');
+    if (stands) wrapEl.appendChild(stands);
+    var dw = wrapEl && wrapEl.querySelector('.lcdeckwrap'), pm = wrapEl && wrapEl.querySelector('.pmsg');
+    if (dw && pm) { var row = document.createElement('div'); row.className = 'msgrow'; pm.parentNode.insertBefore(row, pm); row.appendChild(pm); row.appendChild(dw); }
     PL.rolled = false;
     var key = PL.st || PL.T || PL.kind;
     if (PL.hKey !== key) { PL.hKey = key; PL.hMax = {}; }
@@ -2854,6 +2899,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     later(function () { var g = G(); xPlay(1, XR.choose(PL.st, 1, g.vs.level)); }, 750);
   }
   function xPlay(p, idx) {
+    if (p === 0) clearNewCards(0);
     var st = PL.st, ev = XR.play(st, p, idx), who = p === 0 ? 'You' : 'The computer';
     PL.flash = ev; PL.busy = true;
     if (ev.xeri) PL.msg = (p === 0 ? 'Xeri! You take the ' : 'Xeri for the computer with the ') + cardName(ev.card) + ': ' + ev.xeri + ' points.';
@@ -2922,7 +2968,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     }
     out += '<div class="cards hand" role="group" aria-label="Your hand">' + st.hands[0].map(function (c, i) {
       var can = myTurn && top && (c.r === top.r || c.r === 11), xeri = can && st.pile.length === 1 && c.r === top.r;
-      return '<button type="button" class="card' + (c.s === 1 || c.s === 2 ? ' red' : '') + (PL.hint && PL.hint.xi === i ? ' hinted' : '') + '" data-pa="card" data-i="' + i + '"' + (myTurn ? '' : ' disabled') +
+      return '<button type="button" class="card' + (c.s === 1 || c.s === 2 ? ' red' : '') + (PL.hint && PL.hint.xi === i ? ' hinted' : '') + (isNewCard(c) ? ' newcard' : '') + (myTurn ? '' : ' off') + '" data-pa="card" data-i="' + i + '"' + (myTurn ? '' : ' aria-disabled="true"') +
         ' aria-label="Play the ' + cardName(c) + '">' + cardFace(c) + '</button>';
     }).join('') + '</div>';
     if (!PL.showTrick) out += '<div class="pbtns"><button type="button" class="btn" data-pa="trick"' + (PL.lastTrick ? '' : ' disabled') + '>See last trick</button></div>';
@@ -3397,6 +3443,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     var M = GMS[PL.kind];
     if (mv == null) return;
     var h = humanSeat(seat), snap = h && M.undoable && M.undoable(PL.st, mv) ? JSON.stringify(PL.st) : null;
+    if (h) clearNewCards(seat);
     var ev = M.apply(PL.st, seat, mv) || {};
     if (ev.msg != null) PL.msg = ev.msg;
     PL.pause = ev.pause || 0;
@@ -3463,9 +3510,12 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   /* Shared drawing */
   RK[14] = 'A'; RN[14] = 'ace';
   SU[4] = '\u2605'; SN[4] = 'stars';
+  // A jester's face, drawn for jokers: small in the corner, larger with a ruff in the middle.
+  var JESTER_SM = '<svg class="jst" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 11.2C4.6 8.4 3.6 6.4 1.8 5.4 4.4 5 6.6 6.6 8 9 8.6 6 10 3.6 12 2.4c2 1.2 3.4 3.6 4 6.6 1.4-2.4 3.6-4 6.2-3.6-1.8 1-2.8 3-3.2 5.8z"/><circle cx="1.8" cy="5.4" r="1.3" fill="currentColor"/><circle cx="22.2" cy="5.4" r="1.3" fill="currentColor"/><circle cx="12" cy="1.8" r="1.3" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6.4 11.4c0 4 2.5 6.6 5.6 6.6s5.6-2.6 5.6-6.6"/><circle cx="9.7" cy="13.3" r="1.1" fill="currentColor"/><circle cx="14.3" cy="13.3" r="1.1" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M9.3 15.4c1.4 1.5 4 1.5 5.4 0"/></svg>';
+  var JESTER_LG = '<svg class="jst" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 11.2C4.6 8.4 3.6 6.4 1.8 5.4 4.4 5 6.6 6.6 8 9 8.6 6 10 3.6 12 2.4c2 1.2 3.4 3.6 4 6.6 1.4-2.4 3.6-4 6.2-3.6-1.8 1-2.8 3-3.2 5.8z"/><circle cx="1.8" cy="5.4" r="1.3" fill="currentColor"/><circle cx="22.2" cy="5.4" r="1.3" fill="currentColor"/><circle cx="12" cy="1.8" r="1.3" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M6.4 11.4c0 4 2.5 6.6 5.6 6.6s5.6-2.6 5.6-6.6"/><circle cx="9.7" cy="13.3" r="0.95" fill="currentColor"/><circle cx="14.3" cy="13.3" r="0.95" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M9.3 15.4c1.4 1.5 4 1.5 5.4 0"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M6.6 19.6l1.8 1.6 1.8-1.6 1.8 1.6 1.8-1.6 1.8 1.6 1.8-1.6"/></svg>';
   function faceOf(c) {
     if (c.face) return '<span class="cr">' + c.face + '</span><span class="cs">' + (c.sym || '') + '</span>';
-    if (c.r === 0) return '<span class="cr">Jo<small>\u2605</small></span><span class="cs">\u2605</span>';
+    if (c.r === 0) return '<span class="cr jk">' + JESTER_SM + '</span><span class="cs jk">' + JESTER_LG + '</span>';
     return cardFace(c);
   }
   function nameOf(c) { return c.label || (c.r === 0 ? 'joker' : cardName(c)); }
@@ -3473,11 +3523,11 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function showCard(c, extra) { return '<span class="card' + cardCls(c) + (extra || '') + '"' + (c.id ? ' data-fly="' + c.id + '"' : '') + ' role="img" aria-label="' + esc(nameOf(c)) + '">' + faceOf(c) + '</span>'; }
   // A hand of buttons. opts: {pa, can(c) -> playable, picked(c), label}
   function handButtons(cards, o) {
-    o = o || {};
+    o = o || {}; cards = orderFor(cards);
     return '<div class="cards hand" role="group" aria-label="' + esc(o.label || 'Your hand') + '">' + cards.map(function (c) {
       var ok = o.can ? o.can(c) : true, on = o.picked ? o.picked(c) : false;
-      var hinted = PL && PL.hint && PL.hint.ids && PL.hint.ids.indexOf(c.id) >= 0;
-      return '<button type="button" class="card' + cardCls(c) + (on ? ' picked' : '') + (o.mark && o.mark(c) ? ' can' : '') + (hinted ? ' hinted' : '') + '" data-pa="' + (o.pa || 'card') + '" data-id="' + c.id + '"' + (ok ? '' : ' disabled') +
+      var hinted = PL && PL.hint && PL.hint.ids && PL.hint.ids.indexOf(c.id) >= 0, fresh = PL && isNewCard(c);
+      return '<button type="button" class="card' + cardCls(c) + (on ? ' picked' : '') + (o.mark && o.mark(c) ? ' can' : '') + (hinted ? ' hinted' : '') + (fresh ? ' newcard' : '') + (ok ? '' : ' off') + '" data-pa="' + (o.pa || 'card') + '" data-id="' + c.id + '"' + (ok ? '' : ' aria-disabled="true"') +
         ' aria-pressed="' + on + '" aria-label="' + esc(nameOf(c)) + '">' + faceOf(c) + '</button>';
     }).join('') + '</div>';
   }
@@ -4266,7 +4316,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     help: 'Round 1 has one card each, round 2 two, and so on. The next card sets trump: a wizard lets the dealer choose, a jester means no trump. Bid the exact number of tricks. Follow the suit led if you can; wizards and jesters can always be played. The first wizard wins the trick; jesters lose. Exact bid: 20 plus 10 a trick. Otherwise minus 10 for each trick over or under.',
     deal: function (ctx) {
       var d = deckOf(range(2, 14), [0, 1, 2, 3]);
-      for (var i = 0; i < 4; i++) { d.push(mkCard(15, 9, { face: 'W', sym: '\u2726', label: 'wizard', cls: 'wiz' })); d.push(mkCard(0, 9, { face: 'Je', sym: '\u263E', label: 'jester', cls: 'jest' })); }
+      for (var i = 0; i < 4; i++) { d.push(mkCard(15, 9, { face: 'W', sym: '\u2726', label: 'wizard', cls: 'wiz' })); d.push(mkCard(0, 9, { face: JESTER_SM, sym: JESTER_LG, label: 'jester', cls: 'jest jk' })); }
       shuffle(d);
       var k = ctx.round + 1, hands = [];
       for (i = 0; i < ctx.n; i++) hands.push(sortSuits(d.splice(0, k), function (c) { return c.r; }));
@@ -4587,6 +4637,28 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   };
 
   /* Five Crowns: five suits, 3 to king, plus jokers. The round’s wild rank matches the number of cards dealt. */
+  // Cards not yet in one of your groups.
+  function fcLoose(st, seat) {
+    var used = {}; ((st.staged && st.staged[seat]) || []).forEach(function (gp) { gp.ids.forEach(function (id) { used[id] = 1; }); });
+    return st.hands[seat].filter(function (c) { return !used[c.id]; });
+  }
+  // Every way a group can be read: a book of one rank, or a run in one suit, with each wild declared.
+  function fcInterps(cards, k) {
+    var wild = function (c) { return c.r === 0 || c.r === k; }, nat = cards.filter(function (c) { return !wild(c); }), L = cards.length, out = [];
+    var rk = function (r) { return RK[r] || String(r); }, nm = function (r) { return (RN[r] || String(r)) + 's'; };
+    if (L < 3) return out;
+    if (!nat.length) return ['Book of ' + L + ' wilds'];
+    if (nat.every(function (c) { return c.r === nat[0].r; })) out.push('Book of ' + nm(nat[0].r) + (L > nat.length ? ' (' + (L - nat.length) + ' wild)' : ''));
+    var rs = nat.map(function (c) { return c.r; });
+    if (nat.every(function (c) { return c.s === nat[0].s; }) && rs.every(function (r, i) { return rs.indexOf(r) === i; })) {
+      var lo = Math.min.apply(null, rs), hi = Math.max.apply(null, rs);
+      for (var a = Math.max(3, hi - L + 1); a <= Math.min(lo, 13 - L + 1); a++) {
+        var as = []; for (var r = a; r < a + L; r++) if (rs.indexOf(r) < 0) as.push(rk(r) + SU[nat[0].s]);
+        out.push('Run ' + rk(a) + '–' + rk(a + L - 1) + ' ' + SU[nat[0].s] + (as.length ? ', wild as ' + as.join(' and ') : ''));
+      }
+    }
+    return out;
+  }
   function fcOpts(k) { return { wild: function (c) { return c.r === 0 || c.r === k; }, val: function (c) { return c.r === 0 ? 50 : c.r === k ? 20 : c.r; }, minSet: 3, minRun: 3 }; }
   var FC = GMS.fivecrowns = {
     help: 'Round one deals 3 cards, then one more each round up to 13. Jokers and the rank matching the number of cards are wild. Draw, then discard. Go out when your whole hand (after discarding) forms books of 3 or more of a rank and runs of 3 or more in a suit. Everyone else then gets one more turn. Cards you can’t use count against you: face value, wilds 20, jokers 50. Lowest total wins.',
@@ -4609,14 +4681,34 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       return { draw: take ? 'pile' : 'stock', auto: true };
     },
     act: function (a, el, st, P) {
-      if (st.phase === 'draw') { if (a === 'stock') return { draw: 'stock' }; if (a === 'pile') return { draw: 'pile' }; return null; }
-      if (a === 'card') return selToggle(P, el.dataset.id, 1);
-      var c = selCards(P, st.hands[0])[0]; if (!c) return null;
-      if (a === 'discard') return { discard: c.id };
-      if (a === 'out') return { discard: c.id, out: true };
+      var ui = P.ui;
+      if (a === 'fcbreak') return { unstage: +el.dataset.i };
+      if (a === 'fcauto') return { autostage: 1 };
+      if (a === 'fcchoice' && ui.pending) return { stage: ui.pending, label: ui.choices[+el.dataset.i] };
+      if (st.phase === 'draw') { if (a === 'stock') return { draw: 'stock' }; if (a === 'pile') return { draw: 'pile' }; if (a === 'card') return selToggle(P, el.dataset.id); return null; }
+      if (a === 'card') { ui.choices = null; return selToggle(P, el.dataset.id); }
+      var sel = selCards(P, st.hands[0]);
+      if (a === 'fcgroup') {
+        var it = fcInterps(sel, st.k);
+        if (!it.length) { P.msg = 'That isn’t a book (3 or more of a rank) or a run (3 or more in a row in one suit).'; return true; }
+        if (it.length === 1) return { stage: sel.map(function (c) { return c.id; }), label: it[0] };
+        ui.pending = sel.map(function (c) { return c.id; }); ui.choices = it; P.msg = 'How should the wild cards count?'; return true;
+      }
+      if (sel.length !== 1) { if (a === 'discard' || a === 'out') P.msg = 'Select just the one card to discard.'; return a === 'discard' || a === 'out' ? true : null; }
+      if (a === 'discard') return { discard: sel[0].id };
+      if (a === 'out') return { discard: sel[0].id, out: true };
     },
     apply: function (st, seat, mv) {
       var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat], o = fcOpts(st.k);
+      st.staged = st.staged || st.hands.map(function () { return []; });
+      var mine = st.staged[seat];
+      if (mv.stage) { mine.push({ ids: mv.stage, label: mv.label }); return { msg: 'Grouped: ' + mv.label + '.' }; }
+      if (mv.unstage != null) { var gone = mine.splice(mv.unstage, 1)[0]; return { msg: gone ? 'Broke up: ' + gone.label + '.' : '' }; }
+      if (mv.autostage) {
+        var r0 = MELD.best(fcLoose(st, seat), o);
+        r0.melds.forEach(function (m) { var lab = fcInterps(m.cards, st.k)[0]; if (lab) mine.push({ ids: m.cards.map(function (c) { return c.id; }), label: lab }); });
+        return { msg: r0.melds.length ? 'Arranged ' + r0.melds.length + (r0.melds.length === 1 ? ' group.' : ' groups.') : 'Nothing more fits together yet.' };
+      }
       if (mv.draw) {
         var c = mv.draw === 'pile' ? st.pile.pop() : st.stock.length ? st.stock.pop() : st.pile.shift();
         h.push(c); st.phase = 'act'; FC.sort(st, h);
@@ -4629,24 +4721,33 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return { msg: msg };
       }
       var dc = takeIds(h, [mv.discard])[0]; st.pile.push(dc);
+      st.staged[seat] = mine.filter(function (gp) { return gp.ids.indexOf(dc.id) < 0; }); mine = st.staged[seat];
       var m = who + (seat === 0 ? ' discard the ' : ' discards the ') + nameOf(dc) + '.';
       if (mv.out) {
-        if (MELD.best(h, o).dead) { h.push(dc); st.pile.pop(); return { msg: 'Those cards don’t all fit in books and runs yet.' }; }
+        if (MELD.best(fcLoose(st, seat), o).dead) { h.push(dc); st.pile.pop(); return { msg: 'Those cards don’t all fit in books and runs yet.' }; }
         st.outBy = seat; st.left = st.n - 1; m += ' ' + (seat === 0 ? 'You go out! Everyone else gets one more turn.' : who + ' goes out! Everyone else gets one more turn.');
       } else if (st.left > 0) st.left--;
       st.phase = 'draw'; st.next = (seat + 1) % st.n;
       return { msg: m, pause: 700 };
     },
-    score: function (st) { var o = fcOpts(st.k); return st.hands.map(function (h, i) { var r = MELD.best(h, o); return { pts: i === st.outBy ? 0 : r.dead, r: r }; }); },
+    // Your own groups stand as you made them; anything left over is arranged as well as it can be.
+    score: function (st) { var o = fcOpts(st.k); return st.hands.map(function (h, i) { var r = MELD.best(fcLoose(st, i), o); return { pts: i === st.outBy ? 0 : r.dead, r: r }; }); },
     record: function (g, st, res, P) { var r = rowFor(g), cid = scoreCol(g).id; P.seats.forEach(function (s, i) { setCell(r, s.pid, cid, res[i].pts); }); },
     over: function (g) { return g.rounds.every(function (r) { return !rowEmpty(r); }); },
     view: function (st, P) {
-      var o = fcOpts(st.k), my = FC.turn(st) === 0, sel = selCards(P, st.hands[0])[0], ar = arrangedHand(st.hands[0], o);
+      var o = fcOpts(st.k), my = FC.turn(st) === 0, sels = selCards(P, st.hands[0]), sel = sels.length === 1 ? sels[0] : null;
+      var staged = (st.staged && st.staged[0]) || [], loose = fcLoose(st, 0), ar = arrangedHand(loose, o);
       var out = seatChips(P, function (i) { return st.hands[i].length + ' cards' + (i === st.outBy ? ' · out' : ''); }, st.next > 0 && st.left !== 0 ? st.next : -1) + pilesHTML(st, my);
-      out += handButtons(ar.cards, { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel === c; }, mark: function (c) { return ar.inMeld[c.id]; } });
-      var after = sel ? MELD.best(st.hands[0].filter(function (c) { return c !== sel; }), o).dead : null;
-      if (my && st.phase === 'act') out += btns([btn('discard', 'Discard', true, sel ? '' : ' disabled'), st.outBy < 0 ? btn('out', 'Go out', false, after === 0 ? '' : ' disabled') : '']);
-      return out + note('Wild: ' + (RN[st.k] || st.k) + 's and jokers. Outlined cards fit together; the rest would count ' + ar.dead + '.' + (st.outBy >= 0 ? ' ' + st.names[st.outBy] + ' went out: this is the last turn.' : ''));
+      if (P.ui.choices) out += '<div class="bids kkch">' + P.ui.choices.map(function (t, i) { return '<button type="button" class="btn" data-pa="fcchoice" data-i="' + i + '">' + esc(t) + '</button>'; }).join('') + '</div>';
+      out += handButtons(ar.cards, { can: function () { return my; }, picked: function (c) { return sels.indexOf(c) >= 0; }, mark: function (c) { return ar.inMeld[c.id]; } });
+      var after = sel ? MELD.best(loose.filter(function (c) { return c !== sel; }), o).dead : null;
+      out += btns(my && st.phase === 'act' ? [btn('fcgroup', 'Group', false, sels.length >= 3 ? '' : ' disabled'), btn('discard', 'Discard', true, sel ? '' : ' disabled'), st.outBy < 0 ? btn('out', 'Go out', false, after === 0 ? '' : ' disabled') : ''] : []);
+      out += note('Wild: ' + (RN[st.k] || st.k) + 's and jokers. Select cards and tap Group to make a book or run, or let the outline guide you. Loose cards would count ' + ar.dead + '.' + (st.outBy >= 0 ? ' ' + st.names[st.outBy] + ' went out: this is the last turn.' : ''));
+      out += '<p class="tinfo">Your books and runs' + (staged.length ? ' · tap one to break it up' : '') + '</p><div class="melds fcg">' + (staged.length ? staged.map(function (gp, i) {
+        var cards = gp.ids.map(function (id) { return st.hands[0].filter(function (c) { return c.id === id; })[0]; }).filter(Boolean);
+        return meldRow(cards, ' data-pa="fcbreak" data-i="' + i + '" role="button"', gp.label);
+      }).join('') : '<span class="pempty">None yet</span>') + (my ? '<button type="button" class="btn small" data-pa="fcauto">Arrange for me</button>' : '') + '</div>';
+      return out;
     },
     doneLine: function (st, res) { return res[0].pts === 0 ? 'You finish the round with nothing against you.' : 'You have ' + res[0].pts + ' left against you.'; },
     detail: function (st, res, P) { return resTable(P, res.map(function (x, i) { return { name: st.names[i], v: [x.pts] }; }), ['Points']); },
@@ -5493,7 +5594,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         return '<' + (on ? 'button type="button" data-pa="train" data-i="' + i + '"' : 'div') + ' class="train' + (on ? ' tgt' : '') + (st.pending === i ? ' pend' : '') + '"><span class="ml">' + esc(lab) + (tr.open && i < st.n ? ' · open' : '') + '</span><span class="tiles">' +
           (tr.tiles.length > 4 ? '<span class="more">+' + (tr.tiles.length - 4) + '</span>' : '') + tr.tiles.slice(-4).map(function (t) { return domHTML(t); }).join('') + '<span class="tend">' + tr.end + '</span></span></' + (on ? 'button' : 'div') + '>';
       }).join('') + '</div>';
-      out += '<div class="cards hand dhand">' + st.hands[0].slice().sort(function (a, b) { return b.a + b.b - a.a - a.b; }).map(function (t) { return domHTML(t, 'button', ' type="button" data-pa="tile" data-id="' + t.id + '"' + (my ? '' : ' disabled') + (sel === t.id ? ' aria-pressed="true"' : '') + (PL.hint && PL.hint.ids && PL.hint.ids.indexOf(t.id) >= 0 ? ' data-hint="1"' : '')); }).join('') + '</div>';
+      out += '<div class="cards hand dhand">' + orderFor(st.hands[0].slice().sort(function (a, b) { return b.a + b.b - a.a - a.b; })).map(function (t) { return domHTML(t, 'button', ' type="button" data-pa="tile" data-id="' + t.id + '"' + (my ? '' : ' aria-disabled="true"') + (sel === t.id ? ' aria-pressed="true"' : '') + (PL.hint && PL.hint.ids && PL.hint.ids.indexOf(t.id) >= 0 ? ' data-hint="1"' : '') + (isNewCard(t) ? ' data-new="1"' : '')); }).join('') + '</div>';
       var stuck = my && !MT.any(st, 0), opening = my && st.opening[0];
       if (opening && st.laid && !stuck) out += btns([btn('endopen', 'End my turn')]);
       else if (stuck) out += btns([!st.drew && st.yard.length ? btn('draw', 'Draw a domino', true) : btn('pass', 'Pass', true)]);
@@ -5666,8 +5767,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     apply: function (st, seat, mv) {
       var h = st.hands[seat], who = seat === 0 ? 'You' : st.names[seat], card;
       if (mv.play || mv.discard) {
-        if (mv.play) { card = takeIds(h, [mv.play])[0]; st.exp[seat][card.s].push(card); st.last = who + ' played the ' + nameOf(card); st.justDisc = -1; }
-        else { card = takeIds(h, [mv.discard])[0]; st.disc[card.s].push(card); st.last = who + ' discarded the ' + nameOf(card); st.justDisc = card.s; }
+        if (mv.play) { card = takeIds(h, [mv.play])[0]; st.exp[seat][card.s].push(card); st.last = who + ': played ' + nameOf(card); st.justDisc = -1; }
+        else { card = takeIds(h, [mv.discard])[0]; st.disc[card.s].push(card); st.last = who + ': discarded ' + nameOf(card); st.justDisc = card.s; }
         if (!('take' in mv)) { st.phase = 'draw'; return { msg: st.last + '.' }; }
         return LC.draw(st, seat, mv.take == null ? 'deck' : mv.take);
       }
@@ -5680,8 +5781,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       h.push(took || drew); LC.sort(h);
       st.phase = 'play'; st.justDisc = -1; st.next = 1 - seat;
       if (!st.deck.length) st.end = true;
-      var got = took ? ' and took the ' + nameOf(took) + ' from the discards' : seat === 0 ? ' and drew the ' + nameOf(drew) : ' and drew from the deck';
-      return { msg: st.last + got + '.' + (st.end ? ' The deck is empty: the round is over.' : ''), pause: 900 };
+      var got = took ? ', took ' + nameOf(took) : seat === 0 ? ', drew ' + nameOf(drew) : ', drew from deck';
+      return { msg: st.last + got + '.' + (st.end ? ' Deck empty: round over.' : ''), pause: 900 };
     },
     score: function (st) { return st.exp.map(function (ex) { var each = ex.map(lcScore); return { each: each, pts: sum(each, function (x) { return x || 0; }) }; }); },
     // Rows run colour by colour within each round; older sheets also have a purple row, left blank.
@@ -5706,8 +5807,8 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
         }).join('') + '</div>';
       };
       // The deck sits top right, out of the way; the discard piles line up under their expeditions.
-      var deck = '<button type="button" class="lcdeck' + (drawing ? ' cantake' : '') + '" data-pa="deck"' + (drawing ? '' : ' disabled') + ' aria-label="Deck, ' + st.deck.length + ' cards"><span class="card back"></span><span>' + st.deck.length + '<br>left</span></button>';
-      var out = '<div class="lcview"><div class="lchead"><p class="tinfo">Computer’s expeditions · ' + st.hands[1].length + ' cards</p>' + deck + '</div>' + exRow(1);
+      var deck = '<div class="lcdeckwrap"><button type="button" class="lcdeck' + (drawing ? ' cantake' : '') + '" data-pa="deck"' + (drawing ? '' : ' disabled') + ' aria-label="Deck, ' + st.deck.length + ' cards"><span class="card lcback"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS.compass + '</svg></span><span class="lccount">' + st.deck.length + '</span></button></div>';
+      var out = deck + '<div class="lcview"><p class="tinfo">Computer’s expeditions · ' + st.hands[1].length + ' cards</p>' + exRow(1);
       out += '<div class="lcrow discs">' + st.disc.map(function (d, c) {
         var top = d[d.length - 1], can = drawing && top && c !== st.justDisc;
         return '<button type="button" class="lccol lc' + c + 'b' + (can ? ' cantake' : '') + '" data-pa="dpile" data-i="' + c + '"' + (can ? '' : ' disabled') + ' aria-label="' + LCN[c] + ' discards' + (top ? ', top card ' + nameOf(top) : ', empty') + '">' + (top ? showCard(top) : '<span class="lcempty"></span>') + '</button>';
@@ -5950,7 +6051,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
   function kkItemHTML(x) {
     if (!kkWild(x.c)) return showCard(x.c);
     var red = x.s === 1 || x.s === 2;
-    return '<span class="card joker kj' + (red ? ' red' : '') + '" role="img" aria-label="joker as the ' + esc(kkName(x.r, x.s)) + '"><span class="cr">' + kkRank(x.r) + '<small>' + SU[x.s] + '</small></span><span class="cs">\u2605</span></span>';
+    return '<span class="card joker kj' + (red ? ' red' : '') + '" role="img" aria-label="joker as the ' + esc(kkName(x.r, x.s)) + '"><span class="cr">' + kkRank(x.r) + '<small>' + SU[x.s] + '</small></span><span class="cs jk">' + JESTER_SM + '</span></span>';
   }
   function kkCanPlaceJoker(st, hand, j) {
     if (st.melds.some(function (m) { return kkAdds(m, j).length; })) return true;
@@ -6180,8 +6281,12 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
       var my = KK.turn(st) === 0, sel = P.ui.sel || [], g = G();
       var out = seatChips(P, function (i) { return st.hands[i].length + ' cards · ' + st.scores[i] + ' pts' + (st.melded[i] ? ' · melded' : ''); }, st.next > 0 && !st.end ? st.next : -1);
       out += pilesHTML(st, my);
-      var meldsHTML = '<div class="melds">' + (st.melds.length ? st.melds.map(function (m, j) {
-        return '<div class="meld" data-pa="mtarget" data-i="' + j + '" role="button" aria-label="' + esc(kkDescribe(m)) + '"><span class="ml">' + esc(m.owner === 0 ? 'You' : st.names[m.owner]) + '</span><span class="mcards">' + m.items.map(kkItemHTML).join('') + '</span></div>';
+      // Melds sit together by player, side by side, wrapping onto more rows as needed.
+      var owners = []; st.melds.forEach(function (m) { if (owners.indexOf(m.owner) < 0) owners.push(m.owner); }); owners.sort(function (a, b) { return a - b; });
+      var meldsHTML = '<div class="melds">' + (owners.length ? owners.map(function (o) {
+        return '<div class="kkgroup"><span class="ml">' + esc(o === 0 ? 'You' : st.names[o]) + '</span><div class="kkmelds">' + st.melds.map(function (m, j) {
+          return m.owner !== o ? '' : '<div class="kmeld" data-pa="mtarget" data-i="' + j + '" role="button" aria-label="' + esc(kkDescribe(m)) + '"><span class="mcards">' + m.items.map(kkItemHTML).join('') + '</span></div>';
+        }).join('') + '</div></div>';
       }).join('') : '<span class="pempty">No melds yet</span>') + '</div>';
       if (P.ui.choices) out += '<div class="bids kkch">' + P.ui.choices.map(function (t, i) { return '<button type="button" class="btn" data-pa="kkchoice" data-i="' + i + '">' + esc(t) + '</button>'; }).join('') + '</div>';
       out += handButtons(st.hands[0] || [], { can: function () { return my && st.phase === 'act'; }, picked: function (c) { return sel.indexOf(c.id) >= 0; }, mark: function (c) { return c.id === st.mustPlay; } });
@@ -6584,7 +6689,7 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     phase10: { arr: ['hands', 'names', 'laid', 'phases', 'skip'], idx: ['next', 'dealer'], owner: ['groups'] },
     uno: { arr: ['hands', 'names'], idx: ['next', 'dealer', 'winner'] },
     golf: { arr: ['grids', 'names'], idx: ['next', 'dealer', 'start', 'endBy'] },
-    fivecrowns: { arr: ['hands', 'names'], idx: ['next', 'dealer', 'outBy'] },
+    fivecrowns: { arr: ['hands', 'names', 'staged'], idx: ['next', 'dealer', 'outBy'] },
     mextrain: { arr: ['hands', 'names', 'opening'], idx: ['next', 'dealer'], trains: true },
     yahtzee: { arr: ['filled', 'names'], idx: ['next'], seatItems: ['writes'] },
     kumkan: { arr: ['hands', 'names', 'melded', 'scores'], idx: ['next', 'dealer', 'winner'], owner: ['melds'] }
@@ -6713,6 +6818,84 @@ td.kauto .cell { color: var(--accent); font-weight: 600; }
     if (act === 'thold' && ui.toolDice) { var k = +el.dataset.i; ui.toolDice.h[k] = !ui.toolDice.h[k]; return true; }
     if (act === 'tstart') { ui.toolStart = { g: g.id, name: g.players[rnd(g.players.length)].name }; return true; }
     return false;
+  }
+
+  /* New cards glow until you make your next move. Cards dealt at the start aren't marked. */
+  function cardKey(c) { return c.id || (c.r + '-' + c.s); }
+  function viewerHand() {
+    if (!PL || !PL.st) return null;
+    var v = VSK[PL.kind].gm ? (PL.viewer || 0) : 0, h = PL.st.hands && PL.st.hands[v];
+    return h ? { v: v, keys: h.map(cardKey) } : null;
+  }
+  function trackNewCards() {
+    var hv = viewerHand(); if (!hv) return;
+    if (PL.newRound !== PL.st) { PL.newRound = PL.st; PL.prevKeys = {}; PL.newKeys = {}; }
+    var prev = PL.prevKeys[hv.v];
+    if (prev) { var added = hv.keys.filter(function (k) { return prev.indexOf(k) < 0; }); if (added.length && added.length < hv.keys.length) PL.newKeys[hv.v] = (PL.newKeys[hv.v] || []).concat(added); }
+    PL.newKeys[hv.v] = (PL.newKeys[hv.v] || []).filter(function (k) { return hv.keys.indexOf(k) >= 0; });
+    PL.prevKeys[hv.v] = hv.keys;
+  }
+  function isNewCard(c) { var v = VSK[PL.kind].gm ? (PL.viewer || 0) : 0, n = PL && PL.newKeys && PL.newKeys[v]; return !!(n && n.indexOf(cardKey(c)) >= 0); }
+  function clearNewCards(seat) { if (PL && PL.newKeys) PL.newKeys[seat || 0] = []; }
+
+  /* Drag cards in your hand to reorder them, dropping a card between any two others. */
+  function orderFor(cards) {
+    var ord = PL && PL.orders && PL.orders[PL.viewer || 0]; if (!ord) return cards;
+    var pos = {}; ord.forEach(function (id, i) { pos[id] = i; });
+    return cards.map(function (c, i) { return { c: c, k: pos[c.id] != null ? pos[c.id] : 1000 + i }; }).sort(function (a, b) { return a.k - b.k; }).map(function (x) { return x.c; });
+  }
+  function setOrder(ids) {
+    if (PL.kind === 'xeri') { var h = PL.st.hands[0], nh = ids.map(function (i) { return h[+i]; }).filter(Boolean); if (nh.length === h.length) PL.st.hands[0] = nh; }
+    else { PL.orders = PL.orders || {}; PL.orders[PL.viewer || 0] = ids; }
+    playRender();
+  }
+  function dragInit(el) {
+    var D = null, suppress = false;
+    var cardAt = function (t) { return t && t.closest ? t.closest('.hand > [data-id], .hand > [data-i]') : null; };
+    var begin = function (x, y) {
+      D.on = true; var r = D.card.getBoundingClientRect();
+      D.ghost = D.card.cloneNode(true); D.ghost.classList.add('ghost');
+      D.ghost.style.cssText = 'position:fixed;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;pointer-events:none;z-index:99;margin:0';
+      D.dx = x - r.left; D.dy = y - r.top; document.body.appendChild(D.ghost); D.card.classList.add('dragging');
+    };
+    var move = function (x, y) {
+      D.ghost.style.left = (x - D.dx) + 'px'; D.ghost.style.top = (y - D.dy) + 'px';
+      var best = null;
+      [].slice.call(D.hand.children).forEach(function (c) {
+        if (c === D.card) return;
+        var r = c.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = Math.hypot(x - cx, (y - cy) * 1.6);
+        if (!best || d < best.d) best = { c: c, d: d, after: x > cx };
+      });
+      if (best) { var ref = best.after ? best.c.nextSibling : best.c; if (ref !== D.card) D.hand.insertBefore(D.card, ref); }
+    };
+    var end = function () {
+      if (!D) return;
+      clearTimeout(D.timer);
+      if (D.on) {
+        D.ghost.remove(); D.card.classList.remove('dragging');
+        var ids = [].slice.call(D.hand.children).map(function (c) { return c.dataset.id || c.dataset.i; });
+        suppress = true; setTimeout(function () { suppress = false; }, 400);
+        D = null; setOrder(ids);
+      } else D = null;
+    };
+    el.addEventListener('mousedown', function (e) { var c = cardAt(e.target); if (!c || e.button) return; D = { card: c, hand: c.parentElement, x0: e.clientX, y0: e.clientY, on: false }; });
+    el.addEventListener('mousemove', function (e) { if (!D) return; if (!D.on && Math.hypot(e.clientX - D.x0, e.clientY - D.y0) > 6) begin(e.clientX, e.clientY); if (D.on) { e.preventDefault(); move(e.clientX, e.clientY); } });
+    el.addEventListener('mouseup', end);
+    el.addEventListener('mouseleave', end);
+    // On a phone: press and hold a card for a moment, then drag it.
+    el.addEventListener('touchstart', function (e) {
+      var c = cardAt(e.target); if (!c || e.touches.length > 1) return;
+      var t = e.touches[0]; D = { card: c, hand: c.parentElement, x0: t.clientX, y0: t.clientY, on: false, armed: false };
+      D.timer = setTimeout(function () { if (D) { D.armed = true; D.card.classList.add('lift'); try { if (navigator.vibrate) navigator.vibrate(12); } catch (x) {} } }, 230);
+    }, { passive: true });
+    el.addEventListener('touchmove', function (e) {
+      if (!D) return; var t = e.touches[0];
+      if (!D.armed) { if (Math.hypot(t.clientX - D.x0, t.clientY - D.y0) > 8) { clearTimeout(D.timer); D = null; } return; }
+      e.preventDefault(); if (!D.on) begin(t.clientX, t.clientY); move(t.clientX, t.clientY);
+    }, { passive: false });
+    el.addEventListener('touchend', function (e) { if (!D) return; if (D.card) D.card.classList.remove('lift'); if (D.on) { e.preventDefault(); end(); } else { clearTimeout(D.timer); D = null; } });
+    el.addEventListener('touchcancel', end);
+    el.addEventListener('click', function (e) { if (suppress) { e.stopPropagation(); e.preventDefault(); suppress = false; } }, true);
   }
 
   /* ---------- chips: stakes for the games where they fit ---------- */
