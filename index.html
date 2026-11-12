@@ -1,25 +1,15 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Score Pad keeps score for card, dice and board games: rounds, totals, dealer, rules, a leaderboard and ready-made sheets for 23 games.">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Score Pad</title>
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1d6a49">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Score Pad">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Score Pad</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
-<style>
-/* Base reset */
-:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; font-size: 14px; }
-img { max-width: 100%; }
-[hidden] { display: none !important; }
-</style>
 <style>
 /* Layout: a single column score pad. Games list first; inside a game, standings on top,
    then the round-by-round sheet (rows = rounds, grouped columns = players), setup below. */
@@ -255,10 +245,151 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
 .check input { width: 18px; height: 18px; accent-color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .btn, .game { transition: border-color .12s; } }
 .game:hover { border-color: var(--accent); }
+/* Play against the computer: a full-screen table over the score sheet, in the game's own colour. */
+.vsdlg { max-width: 360px; width: 100%; }
+.vslbl { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.vslbl .field { color: var(--ink); font-weight: 400; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.segb { flex: 1; border: 0; background: var(--surface); color: var(--ink); padding: 8px 6px; min-height: 40px; font-weight: 500; }
+.segb + .segb { border-left: 1px solid var(--line); }
+.segb.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+html.playing, html.playing body { overflow: hidden; }
+.play { position: fixed; inset: 0; z-index: 55; background: var(--bg); color: var(--ink); overflow-y: auto; overscroll-behavior: contain; }
+.pwrap {
+  max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+}
+.ptop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-left: -8px; }
+.psub { font-size: 13px; color: var(--muted); text-align: right; }
+.ph1 { font-size: 22px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
+.pstands { display: flex; gap: 8px; }
+.pstands .stand { flex: 1; min-width: 0; }
+.stand.turn { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.stand.turn .n { color: var(--accent); font-weight: 600; }
+.pmsg { font-weight: 600; min-height: 1.45em; }
+.pmsg:empty { display: none; }
+.pbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.pbtns .btn { flex: 1 1 140px; min-height: 46px; font-size: 16px; }
+.pbtns:empty { display: none; }
+.pempty { color: var(--muted); font-size: 13px; }
+.presult { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.presult h3 { font-size: 18px; }
+.presult .sheet { width: 100%; }
+.rtable { width: 100%; }
+.rtable tr.rt td { font-weight: 700; color: var(--accent); border-bottom: 0; }
+.rtable tbody tr:last-child td { border-bottom: 0; }
+
+/* Cards keep a light face in both themes, like real ones. */
+.card {
+  width: 48px; height: 70px; flex: none; border-radius: 7px; background: #fffdf7; color: #1c1c1e;
+  border: 1px solid rgba(0, 0, 0, .2); box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  display: inline-flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  padding: 5px 6px; font-family: var(--display); font-weight: 700; line-height: 1;
+}
+.card .cr { font-size: 17px; letter-spacing: -0.06em; display: flex; flex-direction: column; align-items: center; min-width: 13px; }
+.card .cr small { font-size: 14px; margin-top: 1px; letter-spacing: 0; }
+.card .cs { font-size: 23px; align-self: flex-end; }
+.card.red { color: #c22d2d; }
+.card.back { background: repeating-linear-gradient(135deg, var(--accent) 0 4px, var(--sunk) 4px 8px); border-color: var(--accent); }
+.card.ghostcard { background: transparent; border: 1px dashed var(--line); box-shadow: none; }
+.card.mini { width: 24px; height: 34px; padding: 0; border-radius: 4px; }
+button.card { cursor: pointer; }
+button.card:disabled { cursor: default; }
+button.card.can { box-shadow: 0 0 0 3px var(--accent), 0 1px 2px rgba(0, 0, 0, .18); }
+.cards { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.hand { min-height: 78px; padding-top: 4px; }
+.xtable { background: var(--sunk); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.xrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 34px; }
+.xside { font-size: 13px; color: var(--muted); }
+.backs { display: flex; }
+.backs .card + .card { margin-left: -10px; }
+.xmid { display: flex; align-items: center; gap: 16px; }
+.deckbox { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); flex: none; }
+.pilebox { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pile { display: flex; align-items: center; justify-content: center; min-height: 78px; }
+.pile .card + .card { margin-left: -23px; }
+.pile .buried { flex: none; align-self: stretch; display: grid; place-items: center; min-width: 30px; margin-right: 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); font-size: 12px; font-weight: 600; color: var(--muted); }
+.pile .card.new { box-shadow: 0 0 0 3px var(--lead), 0 2px 6px rgba(0, 0, 0, .25); }
+.pilecount { font-size: 12px; color: var(--muted); min-height: 1.2em; }
+@media (prefers-reduced-motion: no-preference) {
+  button.card:not(:disabled) { transition: transform .12s; }
+  button.card:not(:disabled):hover { transform: translateY(-3px); }
+  .pile .card.new { animation: drop .25s ease-out; }
+  .pile.taking .card, .pile.taking .buried { animation: take .45s ease-in 2.7s forwards; }
+  .pile.to-me .card { --dy: 70px; }
+  .pile.to-cpu .card { --dy: -70px; }
+  .die.roll, .tdie.roll { animation: tumble .4s ease-out; }
+  .die.sel { transition: transform .12s; }
+}
+@keyframes drop { from { transform: translateY(-16px); opacity: .3; } }
+@keyframes take { to { transform: translateY(var(--dy, 60px)) scale(.85); opacity: 0; } }
+@keyframes tumble { from { transform: rotate(-40deg) scale(.7); opacity: .3; } }
+
+/* Dice */
+.fkturn { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fkturn .n { font-size: 13px; color: var(--muted); }
+.fkturn .big { font-family: var(--display); font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--accent); }
+.dice { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 54px; align-items: center; }
+.dice.kept { min-height: 34px; gap: 5px; }
+.die {
+  width: 48px; height: 48px; flex: none; border-radius: 10px; background: #fffdf7; border: 1px solid rgba(0, 0, 0, .2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .2); display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 7px;
+}
+.die i { width: 9px; height: 9px; border-radius: 50%; place-self: center; }
+.die i.on { background: #1c1c1e; }
+.die.sel { box-shadow: 0 0 0 3px var(--accent); transform: translateY(-5px); }
+.die.kept { width: 30px; height: 30px; padding: 4px; border-radius: 7px; opacity: .7; }
+.die.kept i { width: 5px; height: 5px; }
+.die.dead { opacity: .4; }
+button.die { cursor: pointer; }
+.fkhelp { font-size: 13px; color: var(--muted); }
+.fkhelp summary { cursor: pointer; font-weight: 600; }
+.fkhelp p { margin-top: 6px; max-width: 65ch; }
+
+/* Tavli board */
+.tboard { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.tb-frame { fill: hsl(24 38% 30%); }
+.tb-felt { fill: hsl(38 48% 86%); }
+.tb-tray { fill: hsl(24 34% 22%); }
+.tb-p0 { fill: hsl(14 48% 44%); }
+.tb-p1 { fill: hsl(34 30% 60%); }
+.tb-tgt, .tb-tgtf { fill: hsl(48 95% 56%); }
+.ck { stroke-width: 1.5; }
+.ck0 { fill: #faf5e8; stroke: #6d5b45; }
+.ck1 { fill: #2a2320; stroke: #0b0807; }
+.ckin { fill: none; stroke-width: 1; }
+.ck0i { stroke: #c9b99b; }
+.ck1i { stroke: #5a4c44; }
+.ckn { font: 700 14px var(--body); text-anchor: middle; }
+.ck0t { fill: #3a2f24; }
+.ck1t { fill: #f2ebe0; }
+.tb-can { stroke: hsl(48 95% 52%); stroke-width: 3; }
+.tb-sel { stroke: hsl(48 95% 52%); stroke-width: 5; }
+.tb-last { stroke: hsl(200 85% 55%); stroke-width: 3.5; }
+.tb-pin { opacity: .85; }
+.tb-hit { fill: transparent; cursor: pointer; }
+.tdie rect { fill: #fffdf7; stroke: #3a2f24; stroke-width: 1.2; }
+.tdie circle { fill: #1c1c1e; }
+.tdie.used { opacity: .35; }
+.tdie { transform-box: fill-box; transform-origin: center; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tb-felt { fill: hsl(30 18% 24%); }
+  :root:not([data-theme="light"]) .tb-p0 { fill: hsl(14 40% 40%); }
+  :root:not([data-theme="light"]) .tb-p1 { fill: hsl(32 16% 40%); }
+  :root:not([data-theme="light"]) .tb-frame { fill: hsl(24 30% 16%); }
+  :root:not([data-theme="light"]) .ck1 { stroke: #a8968a; }
+}
+:root[data-theme="dark"] .tb-felt { fill: hsl(30 18% 24%); }
+:root[data-theme="dark"] .ck1 { stroke: #a8968a; }
+:root[data-theme="dark"] .tb-p0 { fill: hsl(14 40% 40%); }
+:root[data-theme="dark"] .tb-p1 { fill: hsl(32 16% 40%); }
+:root[data-theme="dark"] .tb-frame { fill: hsl(24 30% 16%); }
+@media (max-width: 380px) {
+  .card { width: 44px; height: 64px; }
+  .die { width: 44px; height: 44px; }
+}
 </style>
-</head>
-<body>
-<noscript><p style="padding:16px">Score Pad needs JavaScript turned on.</p></noscript>
+
 <div class="wrap" id="app"></div>
 
 <script>
@@ -291,7 +422,56 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
   function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} if (k === LS || k === LST || k === LSCUR) mirror(); }
+
+  /* ---------- installed app: when running as an ordinary web page, a second copy of the save is kept in IndexedDB ---------- */
+  var IDB = null, mirrorT = null;
+  function standalonePage() { return !(window.claude && window.claude.use); }
+  function idbOpen() {
+    if (!IDB) {
+      IDB = new Promise(function (res, rej) {
+        if (!window.indexedDB) { rej(new Error('no indexedDB')); return; }
+        var r = indexedDB.open('scorepad', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('save'); };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      });
+      IDB.catch(function () {});
+    }
+    return IDB;
+  }
+  function idbReq(mode, fn) {
+    return idbOpen().then(function (d) {
+      return new Promise(function (res, rej) {
+        var t = d.transaction('save', mode), q = fn(t.objectStore('save'));
+        t.oncomplete = function () { res(q && q.result); };
+        t.onerror = t.onabort = function () { rej(t.error); };
+      });
+    });
+  }
+  function mirror() {
+    if (!standalonePage()) return;
+    clearTimeout(mirrorT);
+    mirrorT = setTimeout(function () {
+      var snap = { games: lsGet(LS) || '{}', templates: lsGet(LST) || '{}', current: lsGet(LSCUR) || '', at: Date.now() };
+      idbReq('readwrite', function (s) { return s.put(snap, 'all'); }).catch(function () {});
+    }, 300);
+  }
+  // If the browser ever clears its quick storage, bring the games back from the IndexedDB copy.
+  function idbRestore() {
+    idbReq('readonly', function (s) { return s.get('all'); }).then(function (snap) {
+      if (!snap) { mirror(); return; }
+      var back = {}, changed = false;
+      try { back = JSON.parse(snap.games || '{}') || {}; } catch (e) { back = {}; }
+      Object.keys(back).forEach(function (k) {
+        var g = back[k]; if (!g || typeof g !== 'object') return;
+        if (!games[k] || (g.updatedAt || 0) > (games[k].updatedAt || 0)) { normalize(g); games[k] = g; changed = true; }
+      });
+      if (!lsGet(LST) && snap.templates) { try { templates = JSON.parse(snap.templates) || {}; lsSet(LST, snap.templates); changed = true; } catch (e) {} }
+      if (!lsGet(LSCUR) && snap.current && games[snap.current]) lsSet(LSCUR, snap.current);
+      if (changed) { saveLocal(); render(); } else mirror();
+    }, function () {});
+  }
 
   function normalize(g) {
     g = g || {};
@@ -595,6 +775,11 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
     if (g.cycle && g.cycle.length) out.cycle = g.cycle.slice(0, 12).map(function (x) { return x.slice(0, 20); });
     out.createdAt = stamp(g.createdAt); out.updatedAt = stamp(g.updatedAt);
     if (stamp(g.endedAt)) out.endedAt = stamp(g.endedAt);
+    if (g.vs && typeof g.vs === 'object' && VSK[g.vs.kind] && pids.indexOf(g.vs.me) >= 0 && pids.indexOf(g.vs.cpu) >= 0) {
+      var vs = { kind: g.vs.kind, me: g.vs.me, cpu: g.vs.cpu, level: g.vs.level === 'easy' ? 'easy' : 'hard', target: VSK[g.vs.kind].targets.indexOf(g.vs.target) >= 0 ? g.vs.target : VSK[g.vs.kind].def };
+      ['first', 'next', 'finalBy'].forEach(function (k) { if (pids.indexOf(g.vs[k]) >= 0) vs[k] = g.vs[k]; });
+      out.vs = vs;
+    }
     return out;
   }
   function cleanTemplate(raw, id) {
@@ -705,13 +890,13 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
       '<div class="pickrow"><select class="field" id="game-pick" aria-label="Choose a game">' + pickOptions() + '</select>' +
       '<button type="button" class="btn" data-act="allgames" aria-expanded="' + (ui.allOpen ? 'true' : 'false') + '">' + (ui.allOpen ? 'Hide list' : 'All games') + '</button></div>' +
       '<div id="picks">' + picksHTML(list, keepTitle) + '</div>' +
-      leaderHTML(list) +
+      leaderHTML(list) + vsBoardHTML(list) +
       '<h2>History</h2>' +
       (list.length ? '<div class="games">' + cards + '</div>' : empty) +
       '<div class="endrow"><div class="iobtns"><button type="button" class="btn small" data-act="export"' + (list.length || Object.keys(templates).length ? '' : ' disabled') + '>Export</button>' +
       '<button type="button" class="btn small" data-act="import">Import</button></div>' +
       (list.length ? '<button type="button" class="btn small danger" data-act="askclear">Reset All Data</button>' : '') + '</div>' +
-      ioModalHTML() +
+      ioModalHTML() + vsModalHTML() +
       (ui.modal === 'clear' && list.length ? '<div class="modal"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><h3 id="dlg-t">Reset All Data?</h3>' +
         '<p>Are you sure? This permanently deletes ' + (list.length === 1 ? 'your 1 saved game' : 'all ' + list.length + ' saved games') + ' and the scores in ' + (list.length === 1 ? 'it' : 'them') + '. The Leaderboard will be wiped too, because it is built from these games. Your saved templates are kept. It can’t be undone.</p>' +
         '<div class="row"><button type="button" class="btn" data-act="cancelmodal">Cancel</button><button type="button" class="btn armed" data-act="clearall">Reset All Data</button></div></div></div>' : '');
@@ -885,7 +1070,7 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
         '<div class="actions"><button type="button" class="btn" data-act="toggletable">' + (ui.showTable ? 'Hide full table' : 'Show full table') + '</button>' +
         '<button type="button" class="btn" data-act="reopen">Edit</button></div>' +
         (ui.showTable ? '<div class="finaltable">' + sheetHTML(g) + '</div>' : '') +
-        '<p class="status" id="status"></p>';
+        '<p class="status" id="status"></p>' + vsModalHTML();
       setStatus(); sizeCells(g);
       app.querySelectorAll('.finaltable .cell').forEach(function (el) { el.readOnly = true; el.tabIndex = -1; });
       app.querySelectorAll('.finaltable button').forEach(function (el) { el.disabled = true; });
@@ -897,7 +1082,7 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
       rulesHTML(g) +
       '<div class="standings" id="standings">' + standingsHTML(g) + '</div>' +
       sheetHTML(g) + actionsHTML(g) + setupHTML(g) +
-      '<p class="status" id="status"></p>';
+      '<p class="status" id="status"></p>' + vsModalHTML();
     setStatus(); sizeCells(g);
   }
 
@@ -1563,6 +1748,7 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
       fr.readAsText(file);
     }
     if (e.target.id === 'lb-filter') { ui.lbFilter = e.target.value; ui.lbOpen = null; render(); }
+    if (e.target.id === 'vs-who') { ui.vsWho = e.target.value; render(); }
     if (e.target.id === 'game-pick') {
       var v = e.target.value; e.target.value = '';
       if (v.slice(0, 2) === 'p:' && PRESETS[+v.slice(2)]) startPreset(+v.slice(2));
@@ -1651,13 +1837,18 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
     if (window.claude && window.claude.use) {
       Promise.resolve(window.claude.use('downloads')).then(function (ns) { dlNS = ns && typeof ns.save === 'function' ? ns : null; if (dlNS && ui.modal === 'export') render(); }, function () {});
     }
+    if (standalonePage()) {
+      // Ask the browser to keep this app's data, and work offline once installed.
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
     var use = window.claude && window.claude.use ? window.claude.use('db') : Promise.resolve(null);
     Promise.resolve(use).catch(function () { return null; }).then(function (d) {
       if (!d) {
         mode = 'local';
         var local = loadLocal(); Object.keys(local).forEach(function (k) { if (!games[k]) games[k] = local[k]; });
         dirty.clear(); saveLocal();
-        restore(); return;
+        restore(); if (standalonePage()) idbRestore(); return;
       }
       db = d;
       db.collection('templates').onSnapshot(function (snap) {
@@ -1694,14 +1885,975 @@ details.setup > summary { padding: 12px 14px; font-weight: 600; cursor: pointer;
     pruneUnused();
     render();
   }
+  /* ---------- play against the computer: rules and computer players ---------- */
+  function rnd(n) { return Math.floor(Math.random() * n); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  /* Xeri. Cards are {r: 1-13 (1 ace, 11 jack), s: 0-3 (spades, hearts, diamonds, clubs)}. The deck's top card is its last. */
+  var XR = {
+    val: function (c) { return (c.r === 1 || c.r >= 10 ? 1 : 0) + (c.r === 10 && c.s === 2 ? 1 : 0) + (c.r === 2 && c.s === 3 ? 1 : 0); },
+    newDeal: function (dealer) {
+      var deck = [], s, r;
+      for (s = 0; s < 4; s++) for (r = 1; r <= 13; r++) deck.push({ r: r, s: s });
+      shuffle(deck);
+      var st = { deck: deck, hands: [[], []], pile: [], caps: [[], []], xeri: [0, 0], xn: [0, 0], last: -1, dealer: dealer, turn: 1 - dealer, seen: [] };
+      // Four cards face up to start the pile. A jack turned up goes to the bottom of the deck instead.
+      var guard = 0;
+      while (st.pile.length < 4) { var c = st.deck.pop(); if (c.r === 11 && guard++ < 40) st.deck.unshift(c); else st.pile.push(c); }
+      st.seen = st.pile.slice();
+      XR.dealHands(st);
+      return st;
+    },
+    dealHands: function (st) {
+      for (var i = 0; i < 6; i++) { st.hands[1 - st.dealer].push(st.deck.pop()); st.hands[st.dealer].push(st.deck.pop()); }
+    },
+    captures: function (st, c) { var top = st.pile[st.pile.length - 1]; return !!top && (c.r === top.r || c.r === 11); },
+    play: function (st, p, idx) {
+      var c = st.hands[p].splice(idx, 1)[0], top = st.pile[st.pile.length - 1];
+      var ev = { p: p, card: c, cap: 0, xeri: 0, pile: st.pile.slice() };
+      st.seen.push(c);
+      if (top && (c.r === top.r || c.r === 11)) {
+        if (st.pile.length === 1 && c.r === top.r) { ev.xeri = c.r === 11 ? 20 : 10; st.xeri[p] += ev.xeri; st.xn[p]++; }
+        ev.cap = st.pile.length + 1;
+        st.caps[p] = st.caps[p].concat(st.pile, [c]); st.pile = []; st.last = p;
+      } else st.pile.push(c);
+      st.turn = 1 - p;
+      if (!st.hands[0].length && !st.hands[1].length) {
+        if (st.deck.length) { XR.dealHands(st); ev.redeal = true; }
+        else {
+          ev.end = true;
+          if (st.pile.length) { var to = st.last >= 0 ? st.last : st.dealer; ev.rest = { to: to, n: st.pile.length }; st.caps[to] = st.caps[to].concat(st.pile); st.pile = []; }
+        }
+      }
+      return ev;
+    },
+    score: function (st) {
+      var n = [st.caps[0].length, st.caps[1].length];
+      var out = [0, 1].map(function (p) {
+        return { cards: n[p], most: 0, pts: st.caps[p].reduce(function (t, c) { return t + XR.val(c); }, 0), xeri: st.xeri[p], xn: st.xn[p] };
+      });
+      if (n[0] > n[1]) out[0].most = 3; else if (n[1] > n[0]) out[1].most = 3;
+      out.forEach(function (o) { o.total = o.most + o.pts + o.xeri; });
+      return out;
+    },
+    // Chance that the other player holds at least one of k unseen cards, with h cards in hand drawn from u unseen.
+    pHas: function (k, u, h) {
+      if (k <= 0 || h <= 0 || u <= 0) return 0;
+      var none = 1; for (var i = 0; i < h; i++) none *= Math.max(0, u - k - i) / (u - i);
+      return 1 - none;
+    },
+    choose: function (st, p, level) {
+      var hand = st.hands[p], o = 1 - p, top = st.pile[st.pile.length - 1];
+      var unseen = []; for (var r = 0; r <= 13; r++) unseen[r] = 4;
+      st.seen.concat(hand).forEach(function (c) { unseen[c.r]--; });
+      var u = st.deck.length + st.hands[o].length, h = st.hands[o].length;
+      var pileVal = st.pile.reduce(function (t, c) { return t + XR.val(c); }, 0);
+      var scores = hand.map(function (c) {
+        if (top && (c.r === top.r || c.r === 11)) {
+          var isX = st.pile.length === 1 && c.r === top.r, v = pileVal + XR.val(c) + (st.pile.length + 1) * 0.13;
+          if (isX) v += c.r === 11 ? 20 : 10;
+          if (c.r === 11 && !isX) v -= Math.max(0.4, 2.4 - st.pile.length * 0.3);
+          return v;
+        }
+        var pv = pileVal + XR.val(c) + (st.pile.length + 1) * 0.13;
+        var pr = XR.pHas(unseen[c.r], u, h), pj = c.r === 11 ? pr : XR.pHas(unseen[11], u, h);
+        if (!st.pile.length) return -(pr * ((c.r === 11 ? 20 : 10) + pv) + (1 - pr) * pj * pv) - (c.r === 11 ? 2 : 0);
+        return -(1 - (1 - pr) * (1 - pj)) * pv;
+      });
+      var best = 0; scores.forEach(function (v, i) { if (v > scores[best]) best = i; });
+      if (level === 'easy') {
+        var xi = hand.findIndex(function (c) { return top && st.pile.length === 1 && c.r === top.r; });
+        if (xi >= 0 && Math.random() < 0.6) return xi;
+        if (Math.random() < 0.55) return rnd(hand.length);
+      }
+      return best;
+    }
+  };
+
+  /* Farkle. The best score for a set of dice that must all score, or -1 if any die does not. */
+  var FK = {
+    P: { 1: 2 / 3, 2: 0.444, 3: 0.278, 4: 0.157, 5: 0.077, 6: 0.023 },
+    THR: { 1: 300, 2: 300, 3: 400, 4: 700, 5: 2000, 6: 5000 },
+    memo: {},
+    best: function (c) {
+      var key = c.join(''); if (key in FK.memo) return FK.memo[key];
+      var n = 0, f, k, i; for (f = 1; f <= 6; f++) n += c[f];
+      if (!n) return (FK.memo[key] = 0);
+      var best = -1, sub;
+      if (n === 6) {
+        if (c.slice(1).every(function (x) { return x === 1; })) best = Math.max(best, 1500);
+        var trips = 0, pairs = 0;
+        for (f = 1; f <= 6; f++) { if (c[f] === 3) trips++; if (c[f] === 2) pairs++; if (c[f] === 4) pairs += 2; }
+        if (pairs === 3) best = Math.max(best, 1500);
+        if (trips === 2) best = Math.max(best, 2500);
+      }
+      for (f = 1; f <= 6; f++) {
+        for (k = 6; k >= 3; k--) {
+          if (c[f] < k) continue;
+          var v = k === 3 ? (f === 1 ? 1000 : f * 100) : k === 4 ? 1000 : k === 5 ? 2000 : 3000;
+          var d = c.slice(); d[f] -= k; sub = FK.best(d);
+          if (sub >= 0) best = Math.max(best, v + sub);
+        }
+      }
+      [[1, 100], [5, 50]].forEach(function (x) {
+        if (c[x[0]] > 0) { var d = c.slice(); d[x[0]]--; sub = FK.best(d); if (sub >= 0) best = Math.max(best, x[1] + sub); }
+      });
+      return (FK.memo[key] = best);
+    },
+    counts: function (vals) { var c = [0, 0, 0, 0, 0, 0, 0]; vals.forEach(function (v) { c[v]++; }); return c; },
+    score: function (vals) { return vals.length ? FK.best(FK.counts(vals)) : -1; },
+    // Every way to set dice aside from a roll that scores, as lists of indexes into the roll.
+    options: function (roll) {
+      var out = [], n = roll.length;
+      for (var m = 1; m < (1 << n); m++) {
+        var idx = [], vals = [];
+        for (var i = 0; i < n; i++) if (m & (1 << i)) { idx.push(i); vals.push(roll[i]); }
+        var s = FK.score(vals);
+        if (s > 0) out.push({ idx: idx, score: s, key: vals.slice().sort().join('') });
+      }
+      var seen = {};
+      return out.filter(function (o) { if (seen[o.key]) return false; seen[o.key] = 1; return true; });
+    },
+    canScore: function (roll) { return FK.options(roll).length > 0; },
+    worth: function (n, t) { return Math.max(t, (1 - FK.P[n]) * (t + FK.THR[n] * FK.P[n] / (1 - FK.P[n]))); },
+    // The computer's choice: which dice to keep, and whether to bank afterwards.
+    choose: function (roll, turn, left, ctx, level) {
+      var opts = FK.options(roll), best = null;
+      if (level === 'easy') {
+        best = opts.reduce(function (a, b) { return b.idx.length > a.idx.length || (b.idx.length === a.idx.length && b.score > a.score) ? b : a; });
+        var rem = left - best.idx.length || 6, t = turn + best.score;
+        var bank = t >= 300 + rnd(3) * 100 || (rem <= 2 && t >= 200);
+        if (ctx.mustBeat != null) bank = ctx.mine + t > ctx.mustBeat;
+        return { idx: best.idx, bank: bank };
+      }
+      opts.forEach(function (o) {
+        var rem = left - o.idx.length || 6, t = turn + o.score, v = FK.worth(rem, t);
+        if (!best || v > best.v || (v === best.v && o.score > best.o.score)) best = { o: o, v: v, rem: rem, t: t };
+      });
+      var bankNow = best.t >= FK.THR[best.rem];
+      if (ctx.mine + best.t >= ctx.target) bankNow = true;
+      if (ctx.oppNear && best.rem >= 3 && best.t < 1000) bankNow = false;
+      if (ctx.mustBeat != null) bankNow = ctx.mine + best.t > ctx.mustBeat;
+      return { idx: best.o.idx, bank: bankNow };
+    }
+  };
+
+  /* Tavli. Each player numbers the points 1-24 along their own path, bearing off past 1. 25 is the bar, 0 is off.
+     Board indexes (0-23) are fixed; the human is player 0, whose point p is index p - 1. */
+  var SHOT = [0, 11, 12, 14, 15, 15, 17, 6, 6, 5, 3, 2, 3, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1];
+  var TV = {
+    abs: function (v, pl, p) { return pl === 0 ? p - 1 : v === 'fevga' ? (p + 11) % 24 : 24 - p; },
+    own: function (v, pl, a) { return pl === 0 ? a + 1 : v === 'fevga' ? ((a + 12) % 24) + 1 : 24 - a; },
+    init: function (v) {
+      var T = { v: v, c: [[], []], top: [], bar: [0, 0], off: [0, 0] }, i;
+      for (i = 0; i < 24; i++) { T.c[0].push(0); T.c[1].push(0); T.top.push(-1); }
+      var setup = v === 'portes' ? [[24, 2], [13, 5], [8, 3], [6, 5]] : [[24, 15]];
+      [0, 1].forEach(function (pl) { setup.forEach(function (s) { var a = TV.abs(v, pl, s[0]); T.c[pl][a] += s[1]; T.top[a] = pl; }); });
+      return T;
+    },
+    clone: function (T) { return { v: T.v, c: [T.c[0].slice(), T.c[1].slice()], top: T.top.slice(), bar: T.bar.slice(), off: T.off.slice() }; },
+    key: function (T) { return T.c[0].join(',') + '|' + T.c[1].join(',') + '|' + (T.v === 'plakoto' ? T.top.join(',') : '') + '|' + T.bar.join(',') + '|' + T.off.join(','); },
+    at: function (T, pl, p) { return T.c[pl][TV.abs(T.v, pl, p)]; },
+    pinned: function (T, pl, a) { return T.v === 'plakoto' && T.c[pl][a] > 0 && T.c[1 - pl][a] > 0 && T.top[a] !== pl; },
+    canBear: function (T, pl) { if (T.bar[pl]) return false; for (var p = 7; p <= 24; p++) if (TV.at(T, pl, p)) return false; return true; },
+    passed: function (T, pl) { if (T.off[pl]) return true; for (var p = 1; p <= 12; p++) if (TV.at(T, pl, p)) return true; return false; },
+    // Fevga: six points in a row may not be held while every opposing checker is still behind them.
+    trapped: function (T, pl) {
+      var o = 1 - pl, run = 0;
+      if (T.off[o]) return false;
+      for (var p = 1; p <= 24; p++) {
+        run = TV.at(T, pl, p) ? run + 1 : 0;
+        if (run < 6) continue;
+        var lo = 99;
+        for (var q = p - 5; q <= p; q++) lo = Math.min(lo, TV.own(T.v, o, TV.abs(T.v, pl, q)));
+        var ahead = false;
+        for (var r = 1; r < lo; r++) if (TV.at(T, o, r)) { ahead = true; break; }
+        if (!ahead) return true;
+      }
+      return false;
+    },
+    single: function (T, pl, d) {
+      var out = [], v = T.v, o = 1 - pl;
+      function add(f, t) {
+        if (t >= 1) {
+          var a = TV.abs(v, pl, t), oc = T.c[o][a];
+          if (v === 'portes' && oc >= 2) return;
+          if (v === 'fevga' && oc >= 1) return;
+          if (v === 'plakoto' && (oc >= 2 || (oc === 1 && T.c[pl][a] > 0 && T.top[a] === o))) return;
+        }
+        var m = { f: f, t: t, d: d };
+        if (v === 'fevga' && t >= 1 && TV.trapped(TV.apply(T, pl, m), pl)) return;
+        out.push(m);
+      }
+      if (v === 'portes' && T.bar[pl]) { add(25, 25 - d); return out; }
+      var bear = TV.canBear(T, pl);
+      for (var p = 24; p >= 1; p--) {
+        var a = TV.abs(v, pl, p);
+        if (!T.c[pl][a] || TV.pinned(T, pl, a)) continue;
+        if (v === 'fevga' && p === 24 && T.c[pl][a] < 15 && !TV.passed(T, pl)) continue;
+        var t = p - d;
+        if (t >= 1) add(p, t);
+        else if (bear) {
+          var higher = false;
+          if (t < 0) for (var q = p + 1; q <= 6; q++) if (TV.at(T, pl, q)) { higher = true; break; }
+          if (!higher) add(p, 0);
+        }
+      }
+      return out;
+    },
+    apply: function (T, pl, m) {
+      var n = TV.clone(T), v = T.v, o = 1 - pl;
+      if (m.f === 25) n.bar[pl]--;
+      else { var a = TV.abs(v, pl, m.f); n.c[pl][a]--; if (n.c[pl][a] === 0) n.top[a] = n.c[o][a] ? o : -1; }
+      if (m.t === 0) n.off[pl]++;
+      else {
+        var b = TV.abs(v, pl, m.t);
+        if (v === 'portes' && n.c[o][b] === 1) { n.c[o][b] = 0; n.bar[o]++; }
+        if (n.c[pl][b] === 0) n.top[b] = pl;
+        n.c[pl][b]++;
+      }
+      return n;
+    },
+    maxLen: function (T, pl, dice) {
+      if (!dice.length || TV.winner(T)) return 0;
+      var best = 0, tried = {};
+      for (var i = 0; i < dice.length; i++) {
+        var d = dice[i]; if (tried[d]) continue; tried[d] = 1;
+        var rest = dice.slice(0, i).concat(dice.slice(i + 1)), ms = TV.single(T, pl, d);
+        for (var j = 0; j < ms.length; j++) {
+          var n = 1 + TV.maxLen(TV.apply(T, pl, ms[j]), pl, rest);
+          if (n > best) best = n;
+          if (best === dice.length) return best;
+        }
+      }
+      return best;
+    },
+    // Moves that keep the most dice playable. With two different dice and only one playable, the higher must be used.
+    legal: function (T, pl, dice, need, opening) {
+      if (!need) return [];
+      var out = [], tried = {};
+      dice.forEach(function (d, i) {
+        if (tried[d]) return; tried[d] = 1;
+        var rest = dice.slice(0, i).concat(dice.slice(i + 1));
+        TV.single(T, pl, d).forEach(function (m) { var n = TV.apply(T, pl, m); if (TV.winner(n) || 1 + TV.maxLen(n, pl, rest) === need) out.push(m); });
+      });
+      if (opening && need === 1 && dice.length === 2 && dice[0] !== dice[1] && !out.some(function (m) { return TV.winner(TV.apply(T, pl, m)); })) {
+        var hi = Math.max(dice[0], dice[1]);
+        if (out.some(function (m) { return m.d === hi; })) out = out.filter(function (m) { return m.d === hi; });
+      }
+      return out;
+    },
+    seqs: function (T, pl, dice) {
+      var need = TV.maxLen(T, pl, dice), res = {}, seen = {};
+      if (!need) return [{ T: T, moves: [] }];
+      (function go(S, ds, path) {
+        if (path.length === need || (path.length && TV.winner(S))) { var k = TV.key(S); if (!res[k]) res[k] = { T: S, moves: path }; return; }
+        var sk = TV.key(S) + '#' + ds.slice().sort().join('');
+        if (seen[sk]) return; seen[sk] = 1;
+        var tried = {};
+        ds.forEach(function (d, i) {
+          if (tried[d]) return; tried[d] = 1;
+          var rest = ds.slice(0, i).concat(ds.slice(i + 1));
+          TV.single(S, pl, d).forEach(function (m) { go(TV.apply(S, pl, m), rest, path.concat([m])); });
+        });
+      })(T, dice, []);
+      var list = Object.keys(res).map(function (k) { return res[k]; });
+      if (need === 1 && dice.length === 2 && dice[0] !== dice[1]) {
+        var hi = Math.max(dice[0], dice[1]);
+        if (list.some(function (x) { return x.moves[0].d === hi; })) list = list.filter(function (x) { return x.moves[0].d === hi; });
+      }
+      return list;
+    },
+    // {w: winner, pts: 1 or 2, how}. Plakoto: pinning the other side's last checker on its starting point wins double.
+    winner: function (T) {
+      for (var pl = 0; pl < 2; pl++) if (T.off[pl] === 15) return { w: pl, pts: T.off[1 - pl] === 0 ? 2 : 1, how: T.off[1 - pl] === 0 ? 'double' : 'off' };
+      if (T.v === 'plakoto') {
+        for (pl = 0; pl < 2; pl++) {
+          var o = 1 - pl, a = TV.abs(T.v, o, 24);
+          if (T.c[o][a] === 1 && T.c[pl][a] > 0 && T.top[a] === pl) return { w: pl, pts: 2, how: 'mother' };
+        }
+      }
+      return null;
+    },
+    pip: function (T, pl) { var t = T.bar[pl] * 25; for (var p = 1; p <= 24; p++) t += TV.at(T, pl, p) * p; return t; },
+    // How likely the other side is to land on pl's lone checker at point p next turn (Portes and Plakoto).
+    threat: function (T, pl, p) {
+      var o = 1 - pl, miss = 1;
+      function shoot(dist) { if (dist > 0 && dist <= 24 && SHOT[dist]) miss *= 1 - SHOT[dist] / 36; }
+      if (T.v === 'portes' && T.bar[o]) shoot(p);
+      for (var a = 0; a < 24; a++) {
+        if (!T.c[o][a] || TV.pinned(T, o, a)) continue;
+        shoot(p - TV.own(T.v, pl, a));
+      }
+      return Math.min(0.75, 1 - miss);
+    },
+    evalPos: function (T, pl) {
+      var w = TV.winner(T);
+      if (w) return w.w === pl ? 10000 + w.pts * 100 : -10000 - w.pts * 100;
+      var v = T.v, o = 1 - pl, s = (TV.pip(T, o) - TV.pip(T, pl)) + (T.off[pl] - T.off[o]) * 2, run = 0, bestRun = 0;
+      var race = v !== 'fevga' && TV.pip(T, pl) && (function () {
+        // No contact left: both sides are past each other.
+        var minO = 25, maxP = 0;
+        for (var a = 0; a < 24; a++) { if (T.c[pl][a]) maxP = Math.max(maxP, TV.own(v, pl, a)); if (T.c[o][a]) minO = Math.min(minO, TV.own(v, pl, a)); }
+        return !T.bar[0] && !T.bar[1] && minO > maxP;
+      })();
+      for (var p = 1; p <= 24; p++) {
+        var a = TV.abs(v, pl, p), n = T.c[pl][a], on = T.c[o][a];
+        if (!n) { run = 0; continue; }
+        if (v === 'plakoto' && TV.pinned(T, pl, a)) { s -= 22 + (24 - p) * 0.6; run = 0; continue; }
+        run++; bestRun = Math.max(bestRun, run);
+        if (v === 'portes') {
+          if (n >= 2) s += p <= 6 ? 5 : p <= 11 ? 3 : 1.5;
+          else if (!race) s -= TV.threat(T, pl, p) * (25 - p + 8);
+          if (n > 4) s -= (n - 4) * 1.2;
+        } else if (v === 'plakoto') {
+          if (on) s += 16 + TV.own(v, o, a) * 0.6;
+          if (n >= 2 || on) s += p <= 6 ? 3.5 : 2;
+          else if (!race) s -= TV.threat(T, pl, p) * (14 + (24 - p) * 0.5);
+          if (p === 24 && n === 1) s -= TV.threat(T, pl, p) * 160;
+          if (p === 24 && n > 1 && n < 15) s += 2;
+        } else {
+          var q = TV.own(v, o, a), behind = 0;
+          for (var r = q + 1; r <= 24; r++) behind += TV.at(T, o, r);
+          s += 2 + Math.min(behind, 6) * 0.5;
+          if (p === 24 && n > 10) s -= (n - 10) * 1.5;
+        }
+      }
+      if (v === 'portes') s += T.bar[o] * 6 - T.bar[pl] * 6;
+      s += bestRun >= 3 ? (bestRun - 2) * 3 : 0;
+      return s;
+    },
+    choose: function (T, pl, dice, level) {
+      var list = TV.seqs(T, pl, dice);
+      if (list.length === 1) return list[0].moves;
+      var scored = list.map(function (x) { return { x: x, s: TV.evalPos(x.T, pl) + (level === 'easy' ? Math.random() * 30 : 0) }; });
+      scored.sort(function (a, b) { return b.s - a.s; });
+      if (level === 'easy' && Math.random() < 0.2) return scored[rnd(scored.length)].x.moves;
+      return scored[0].x.moves;
+    }
+  };
+
+  /* ---------- play against the computer: screens ---------- */
+  var VSK = {
+    xeri: { name: 'Xeri', targets: [61, 101, 151], def: 151, first: 'Play first deal', next: 'Play next deal' },
+    farkle: { name: 'Farkle', targets: [5000, 10000], def: 10000, first: 'Start playing', next: 'Keep playing' },
+    tavli: { name: 'Tavli', targets: [3, 5, 7], def: 5, first: 'Play first game', next: 'Play next game' }
+  };
+  var LSME = 'scorepad.myname', PL = null;
+  function commas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function vsOf(g) {
+    if (!g || !g.vs || !VSK[g.vs.kind]) return null;
+    var has = function (id) { return g.players.some(function (p) { return p.id === id; }); };
+    return has(g.vs.me) && has(g.vs.cpu) ? g.vs.kind : null;
+  }
+  function scoreCol(g) { return g.columns.filter(function (c) { return c.scored; })[0] || g.columns[0]; }
+
+  // Each human's record against the computer, by game and level. Defaults to the player opened in the Leaderboard.
+  function vsBoardHTML(list) {
+    var done = list.filter(function (g) { return g.over && g.vs && VSK[g.vs.kind] && hasScores(g) && playerName(g, g.vs.me) && playerName(g, g.vs.cpu); });
+    if (!done.length) return '';
+    var norm = function (s) { return String(s || '').trim().replace(/\s+/g, ' '); };
+    var people = Object.create(null);
+    done.forEach(function (g) { var n = norm(playerName(g, g.vs.me)); if (n) people[n.toLowerCase()] = n; });
+    var keys = Object.keys(people).sort(function (a, b) { return people[a].localeCompare(people[b]); });
+    if (!keys.length) return '';
+    var mine = String(lsGet(LSME) || '').trim().toLowerCase();
+    var who = people[ui.vsWho] ? ui.vsWho : people[ui.lbOpen] ? ui.lbOpen : people[mine] ? mine : keys[0];
+    var map = Object.create(null), all = { w: 0, p: 0, l: 0 };
+    done.forEach(function (g) {
+      if (norm(playerName(g, g.vs.me)).toLowerCase() !== who) return;
+      var k = g.vs.kind + '|' + (g.vs.level === 'easy' ? 'easy' : 'hard'), a = total(g, g.vs.me), b = total(g, g.vs.cpu);
+      var e = map[k] || (map[k] = { w: 0, p: 0, l: 0 });
+      e.p++; all.p++;
+      if (a > b) { e.w++; all.w++; } else if (b > a) { e.l++; all.l++; }
+    });
+    var rows = [];
+    Object.keys(VSK).forEach(function (kind) { ['easy', 'hard'].forEach(function (lv) { var e = map[kind + '|' + lv]; if (e) rows.push([VSK[kind].name + ' \u00b7 ' + (lv === 'easy' ? 'Easy' : 'Hard'), e]); }); });
+    var line = function (label, e, cls) { return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="who">' + esc(label) + '</td><td>' + e.w + '</td><td>' + e.l + '</td><td>' + e.p + '</td><td>' + Math.round(e.p ? e.w / e.p * 100 : 0) + '%</td></tr>'; };
+    var pickHTML = keys.length > 1 ? '<select class="dealer" id="vs-who" aria-label="Player">' + keys.map(function (k) { return '<option value="' + esc(k) + '"' + (k === who ? ' selected' : '') + '>' + esc(people[k]) + '</option>'; }).join('') + '</select>' : '<span class="muted">' + esc(people[who]) + '</span>';
+    return '<div class="lbhead"><h2>Against the computer</h2>' + pickHTML + '</div>' +
+      '<div class="sheet lbsheet"><table class="lb"><thead><tr><th class="who">Game</th><th>Won</th><th>Lost</th><th>Played</th><th>Win rate</th></tr></thead><tbody>' +
+      rows.map(function (r) { return line(r[0], r[1]); }).join('') + '</tbody>' + (rows.length > 1 ? '<tfoot>' + line('All games', all) + '</tfoot>' : '') + '</table></div>';
+  }
+  // The easter egg: double-click or double-tap a Xeri, Farkle or Tavli sheet's title to play the computer.
+  function vsKindFor(g) { var n = gameName(g); for (var k in VSK) if (VSK[k].name === n) return k; return null; }
+  function vsEgg() {
+    var g = cur(), k = g && vsKindFor(g);
+    if (!k || PL || ui.modal) return;
+    var t = document.getElementById('title'); if (t) t.blur();
+    if (vsOf(g) && !g.over) { openPlay(g.id); return; }
+    var here = !g.over && !g.vs && g.players.length <= 1 && !hasScores(g);
+    ui.modal = 'vs'; ui.vsKind = k; ui.vsHere = here; ui.vsTarget = (g.vs && g.vs.target) || VSK[k].def;
+    ui.vsName = here && g.players.length === 1 ? g.players[0].name : g.vs && playerName(g, g.vs.me) ? playerName(g, g.vs.me) : (ui.vsName || lsGet(LSME) || '');
+    if (g.vs && g.vs.level) ui.vsLevel = g.vs.level;
+    if (!ui.vsLevel) ui.vsLevel = 'hard';
+    render(); var f = document.getElementById('vs-name'); if (f && !f.value) f.focus();
+  }
+  app.addEventListener('dblclick', function (e) { if (e.target.id === 'title') { e.preventDefault(); vsEgg(); } });
+  var lastTap = 0;
+  app.addEventListener('touchend', function (e) {
+    if (e.target.id !== 'title') { lastTap = 0; return; }
+    var now = Date.now();
+    if (now - lastTap < 350) { e.preventDefault(); lastTap = 0; vsEgg(); } else lastTap = now;
+  });
+  function segHTML(act, val, opts, labelId) {
+    return '<div class="seg" role="group" aria-labelledby="' + labelId + '">' + opts.map(function (o) {
+      return '<button type="button" class="segb' + (String(val) === String(o[0]) ? ' on' : '') + '" aria-pressed="' + (String(val) === String(o[0])) + '" data-act="' + act + '" data-v="' + o[0] + '">' + esc(o[1]) + '</button>';
+    }).join('') + '</div>';
+  }
+  function vsModalHTML() {
+    var K = VSK[ui.vsKind];
+    if (ui.modal !== 'vs' || !K) return '';
+    var unit = ui.vsKind === 'tavli' ? ' points' : '';
+    return '<div class="modal"><div class="dialog vsdlg" role="dialog" aria-modal="true" aria-labelledby="vs-t"><h3 id="vs-t">Play ' + esc(K.name) + ' against the computer</h3>' +
+      '<label class="vslbl">Your name<input class="field" id="vs-name" maxlength="24" autocomplete="off" value="' + esc(ui.vsName || '') + '" placeholder="You"></label>' +
+      '<div class="vslbl"><span id="vs-lv">Computer</span>' + segHTML('vslevel', ui.vsLevel || 'hard', [['easy', 'Easy'], ['hard', 'Hard']], 'vs-lv') + '</div>' +
+      '<div class="vslbl"><span id="vs-tg">Play to</span>' + segHTML('vstarget', ui.vsTarget || K.def, K.targets.map(function (t) { return [t, commas(t) + unit]; }), 'vs-tg') + '</div>' +
+      '<p class="note">' + (ui.vsHere ? 'The computer joins this sheet as the other player. Each finished ' : 'This starts a new ' + esc(K.name) + ' score sheet. Each finished ') + (ui.vsKind === 'xeri' ? 'deal' : ui.vsKind === 'tavli' ? 'game' : 'turn') + ' is scored on it, and the result counts in your history and the Leaderboard.</p>' +
+      '<div class="row"><button type="button" class="btn" data-act="cancelmodal">Cancel</button><button type="button" class="btn primary" data-act="vsstart">Start</button></div></div></div>';
+  }
+  function vsStart() {
+    var k = ui.vsKind, K = VSK[k], pi = presetIndex(K.name);
+    if (!K || pi < 0) return;
+    var name = String(ui.vsName || '').trim().slice(0, 24) || 'You';
+    lsSet(LSME, name);
+    ui.modal = null;
+    var g = cur(), here = ui.vsHere && g && !g.over && !g.vs && vsKindFor(g) === k && g.players.length <= 1 && !hasScores(g);
+    if (!here) { startPreset(pi); g = cur(); }
+    if (!g) return;
+    var me = here && g.players[0] ? g.players[0] : { id: uid(), name: name }, cpu = { id: uid(), name: name.toLowerCase() === 'computer' ? 'The Computer' : 'Computer' };
+    me.name = name;
+    g.players = [me, cpu];
+    g.vs = { kind: k, me: me.id, cpu: cpu.id, level: ui.vsLevel === 'easy' ? 'easy' : 'hard', target: +ui.vsTarget || K.def };
+    if (k === 'xeri') g.firstDealer = Math.random() < 0.5 ? me.id : cpu.id;
+    if (k === 'farkle') g.vs.first = Math.random() < 0.5 ? me.id : cpu.id;
+    ui.setupOpen = false;
+    touch(g.id); render(); openPlay(g.id);
+  }
+
+  app.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var act = b.dataset.act;
+    if (act === 'vslevel') { ui.vsLevel = b.dataset.v; render(); return; }
+    if (act === 'vstarget') { ui.vsTarget = +b.dataset.v; render(); return; }
+    if (act === 'vsstart') { vsStart(); return; }
+  });
+  app.addEventListener('input', function (e) { if (e.target.id === 'vs-name') ui.vsName = e.target.value; });
+  app.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.id === 'vs-name') { e.preventDefault(); vsStart(); } });
+
+  /* The play screen sits over the score sheet. It always looks the game up again, because saved games are replaced when changes arrive. */
+  function G() { return PL && games[PL.gid]; }
+  function later(fn, ms) { var me = PL; if (!me) return; me.timers.push(setTimeout(function () { if (PL === me) fn(); }, ms)); }
+  function openPlay(gid) {
+    var g = games[gid]; if (!g || !vsOf(g)) return;
+    closePlay();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var K = VSK[g.vs.kind], el = document.createElement('div');
+    el.className = 'play themed t-' + THEMES[K.name].slug; el.id = 'play';
+    el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', K.name + ' against the computer');
+    document.body.appendChild(el); document.documentElement.classList.add('playing');
+    PL = { gid: gid, kind: g.vs.kind, el: el, timers: [], msg: '' };
+    el.addEventListener('click', playClick);
+    el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); playAct('leave'); } });
+    START[PL.kind](g);
+    playRender();
+    var first = el.querySelector('button'); if (first) first.focus({ preventScroll: true });
+  }
+  function closePlay() {
+    if (!PL) return;
+    PL.timers.forEach(clearTimeout); PL.el.remove(); PL = null;
+    document.documentElement.classList.remove('playing');
+  }
+  function inProgress() {
+    if (!PL) return false;
+    if (PL.kind === 'xeri') return !!PL.st && PL.phase !== 'done' && PL.st.seen.length > 4;
+    if (PL.kind === 'tavli') return PL.phase !== 'done' && PL.phase !== 'opening' && PL.turns > 0;
+    return PL.phase !== 'done' && (PL.tt > 0 || PL.kept.length > 0 || PL.phase === 'pick');
+  }
+  function playAct(a, b) {
+    if (!PL) return;
+    if (a !== 'leave') PL.leaveArmed = false;
+    if (a === 'leave') {
+      if (inProgress() && !PL.leaveArmed) {
+        PL.leaveArmed = true;
+        PL.msg = 'Leaving now drops this ' + (PL.kind === 'xeri' ? 'deal' : PL.kind === 'tavli' ? 'game' : 'turn') + ' without scoring it. Tap Leave again to go.';
+        playRender(); return;
+      }
+      closePlay(); render(); return;
+    }
+    if (a === 'finish') {
+      var g = G(), won = g && total(g, g.vs.me) > total(g, g.vs.cpu);
+      closePlay(); ui.fanfare = true; render(); ui.fanfare = false; window.scrollTo(0, 0);
+      if (won) celebrate();
+      return;
+    }
+    if (a === 'again') { var g2 = G(); if (g2) { START[PL.kind](g2); playRender(); } return; }
+    ACT[PL.kind](a, b);
+  }
+  function playClick(e) {
+    var b = e.target.closest('[data-pa],[data-pt]');
+    // While a taken pile is on show, a tap anywhere (except Leave) clears it straight away.
+    if (PL && PL.skip && !(b && b.dataset.pa === 'leave')) { var go = PL.skip; PL.skip = null; go(); return; }
+    if (!b || b.disabled) return;
+    if (b.dataset.pt != null) return playAct('point', b.dataset.pt);
+    playAct(b.dataset.pa, b);
+  }
+  function standHTML(g, turnPid) {
+    return '<div class="pstands">' + [g.vs.me, g.vs.cpu].map(function (pid) {
+      return '<div class="stand' + (turnPid === pid ? ' turn' : '') + '"><span class="n">' + esc(playerName(g, pid)) + (turnPid === pid ? ' · to play' : '') + '</span><span class="v">' + commas(fmt(total(g, pid))) + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function playRender() {
+    if (!PL) return;
+    var g = G();
+    if (!g || !vsOf(g)) { closePlay(); render(); return; }
+    var K = VSK[PL.kind], body = VIEW[PL.kind](g);
+    PL.el.innerHTML = '<div class="pwrap">' +
+      '<div class="ptop"><button type="button" class="btn ghost" data-pa="leave">' + (PL.leaveArmed ? 'Leave' : '← Score sheet') + '</button>' +
+      '<span class="psub">Playing to ' + commas(g.vs.target) + (PL.kind === 'tavli' ? ' points' : '') + ' · ' + (g.vs.level === 'easy' ? 'Easy' : 'Hard') + '</span></div>' +
+      '<h1 class="ph1">' + iconHTML(THEMES[K.name], 'big') + esc(PL.title || K.name) + '</h1>' +
+      body + '</div>';
+    PL.rolled = false;
+  }
+  function msgHTML() { return '<p class="pmsg" role="status" aria-live="polite">' + esc(PL.msg || '') + '</p>'; }
+  function addRow(g, vals, dealer) {
+    var col = scoreCol(g), r = { id: uid(), dealer: dealer || '', s: {} };
+    Object.keys(vals).forEach(function (pid) { r.s[pid] = {}; r.s[pid][col.id] = vals[pid]; });
+    g.rounds.push(r);
+    return r;
+  }
+  // The match ends when someone reaches the target and is ahead. Returns true when it ended.
+  function checkMatch(g) {
+    var a = total(g, g.vs.me), b = total(g, g.vs.cpu);
+    if (Math.max(a, b) >= g.vs.target && a !== b) { g.over = true; g.endedAt = Date.now(); return true; }
+    return false;
+  }
+  function matchLine(g) {
+    var a = total(g, g.vs.me), b = total(g, g.vs.cpu);
+    return (a > b ? 'You win the match, ' : 'The computer wins the match, ') + commas(fmt(Math.max(a, b))) + ' to ' + commas(fmt(Math.min(a, b))) + '.';
+  }
+  var START = {}, VIEW = {}, ACT = {};
+
+  /* ----- Xeri ----- */
+  var SU = ['\u2660', '\u2665', '\u2666', '\u2663'], SN = ['spades', 'hearts', 'diamonds', 'clubs'];
+  var RK = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' }, RN = { 1: 'ace', 11: 'jack', 12: 'queen', 13: 'king' };
+  function cardName(c) { return (RN[c.r] || c.r) + ' of ' + SN[c.s]; }
+  function cardFace(c) { return '<span class="cr">' + (RK[c.r] || c.r) + '<small>' + SU[c.s] + '</small></span><span class="cs">' + SU[c.s] + '</span>'; }
+  function cardHTML(c, cls) { return '<span class="card' + (c.s === 1 || c.s === 2 ? ' red' : '') + (cls || '') + '" role="img" aria-label="' + cardName(c) + '">' + cardFace(c) + '</span>'; }
+
+  START.xeri = function (g) {
+    var dealer = nextDealer(g), di = dealer === g.vs.cpu ? 1 : 0;
+    PL.st = XR.newDeal(di); PL.phase = 'play'; PL.flash = null; PL.result = null; PL.dealer = dealer;
+    PL.title = 'Xeri · deal ' + (g.rounds.length + 1);
+    PL.msg = PL.st.turn === 0 ? (di === 1 ? 'The computer deals. You lead.' : 'You deal. Your lead.') : (di === 0 ? 'You deal. The computer leads.' : 'The computer deals and leads.');
+    if (PL.st.turn === 1) xCpu();
+  };
+  function xCpu() {
+    PL.busy = true;
+    later(function () { var g = G(); xPlay(1, XR.choose(PL.st, 1, g.vs.level)); }, 750);
+  }
+  function xPlay(p, idx) {
+    var st = PL.st, ev = XR.play(st, p, idx), who = p === 0 ? 'You' : 'The computer';
+    PL.flash = ev; PL.busy = true;
+    if (ev.xeri) PL.msg = (p === 0 ? 'Xeri! You take the ' : 'Xeri for the computer with the ') + cardName(ev.card) + ': ' + ev.xeri + ' points.';
+    else if (ev.cap) PL.msg = who + (p === 0 ? ' take ' : ' takes ') + ev.cap + ' cards with the ' + cardName(ev.card) + '.';
+    else PL.msg = p === 1 ? 'The computer plays the ' + cardName(ev.card) + '.' : '';
+    var done = function () {
+      if (!PL || PL.flash !== ev) return;
+      PL.skip = null; PL.flash = null; PL.busy = false;
+      if (ev.end) return xEnd(ev);
+      if (ev.redeal) PL.msg = 'New hands, 6 cards each. ' + (st.deck.length ? st.deck.length + ' cards left in the deck.' : 'This is the last hand.');
+      else if (!ev.xeri && !ev.cap && p === 1) PL.msg = PL.msg + ' Your turn.';
+      playRender();
+      if (st.turn === 1) xCpu();
+    };
+    // A taken pile stays up for about 3 seconds so it can be read; a tap clears it sooner.
+    if (ev.cap) PL.skip = done;
+    playRender();
+    later(done, ev.cap ? 3200 : p === 1 ? 900 : 350);
+  }
+  function xEnd(ev) {
+    var g = G(), sc = XR.score(PL.st), vals = {};
+    vals[g.vs.me] = sc[0].total; vals[g.vs.cpu] = sc[1].total;
+    addRow(g, vals, PL.dealer);
+    PL.result = sc; PL.phase = 'done'; PL.over = checkMatch(g);
+    PL.msg = ev.rest ? 'The last ' + ev.rest.n + (ev.rest.n === 1 ? ' card goes to ' : ' cards go to ') + (ev.rest.to === 0 ? 'you' : 'the computer') + ', who took the last pile.' : 'That was the last card.';
+    touch(g.id); render(); playRender();
+  }
+  VIEW.xeri = function (g) {
+    var st = PL.st, f = PL.flash, myTurn = st.turn === 0 && !PL.busy && PL.phase === 'play';
+    var pile = f ? f.pile.concat([f.card]) : st.pile, top = st.pile[st.pile.length - 1];
+    // Each card under the top one shows a 25px strip with its rank and suit. When the pile outgrows the space, the oldest cards are buried first.
+    var room = Math.min(600, PL.el.clientWidth || 390) - 28 - 26 - 48 - 16 - 8;
+    var fit = function (w) { return Math.max(3, Math.floor((w - 48) / 25) + 1); };
+    var cap = fit(room); if (pile.length > cap) cap = fit(room - 36);
+    var show = pile.slice(-cap), buried = pile.length - show.length, taking = f && f.cap;
+    var pileHTML = pile.length ? (buried ? '<span class="buried" aria-label="' + buried + ' more cards underneath">+' + buried + '</span>' : '') + show.map(function (c, i) {
+      return cardHTML(c, f && i === show.length - 1 ? ' new' : '');
+    }).join('') : '<span class="pempty">Empty pile</span>';
+    var side = function (p) {
+      return (p === 0 ? 'You' : 'Computer') + ': ' + st.caps[p].length + ' cards taken' + (st.xn[p] ? ', ' + st.xn[p] + (st.xn[p] === 1 ? ' xeri' : ' xeris') : '');
+    };
+    var turnPid = PL.phase === 'done' ? null : st.turn === 0 ? g.vs.me : g.vs.cpu;
+    var out = standHTML(g, turnPid) + msgHTML();
+    if (PL.phase === 'done') return out + xResultHTML(g);
+    out += '<div class="xtable">' +
+      '<div class="xrow"><div class="backs" aria-label="Computer holds ' + st.hands[1].length + ' cards">' + st.hands[1].map(function () { return '<span class="card back mini"></span>'; }).join('') + '</div><span class="xside">' + side(1) + '</span></div>' +
+      '<div class="xmid"><div class="deckbox">' + (st.deck.length ? '<span class="card back"></span>' : '<span class="card ghostcard"></span>') + '<span>' + st.deck.length + ' in deck</span></div>' +
+      '<div class="pilebox"><div class="pile' + (taking ? ' taking ' + (f.p === 0 ? 'to-me' : 'to-cpu') : '') + '" aria-label="Pile">' + pileHTML + '</div>' +
+      '<span class="pilecount">' + (taking && PL.skip ? 'Tap anywhere to continue' : pile.length ? pile.length + (pile.length === 1 ? ' card in the pile' : ' cards in the pile') : '') + '</span></div></div>' +
+      '<div class="xrow"><span class="xside">' + side(0) + '</span></div></div>';
+    out += '<div class="cards hand" role="group" aria-label="Your hand">' + st.hands[0].map(function (c, i) {
+      var can = myTurn && top && (c.r === top.r || c.r === 11), xeri = can && st.pile.length === 1 && c.r === top.r;
+      return '<button type="button" class="card' + (c.s === 1 || c.s === 2 ? ' red' : '') + (can ? ' can' : '') + '" data-pa="card" data-i="' + i + '"' + (myTurn ? '' : ' disabled') +
+        ' aria-label="Play the ' + cardName(c) + (xeri ? ', a xeri' : can ? ', takes the pile' : '') + '">' + cardFace(c) + '</button>';
+    }).join('') + '</div>';
+    out += '<p class="note">' + (myTurn ? 'Tap a card to play it. Outlined cards take the pile: a match for the top card, or a jack.' : PL.busy && st.turn === 1 ? 'The computer is choosing a card.' : '') + '</p>';
+    return out;
+  };
+  function xResultHTML(g) {
+    var sc = PL.result, rows = [['Cards taken', 'cards'], ['Most cards', 'most'], ['Card points', 'pts'], ['Xeri', 'xeri'], ['This deal', 'total']];
+    return '<div class="presult"><h3>' + (PL.over ? esc(matchLine(g)) : 'Deal scored: you ' + sc[0].total + ', the computer ' + sc[1].total + '.') + '</h3>' +
+      '<div class="sheet"><table class="rtable"><thead><tr><th></th><th>You</th><th>Computer</th></tr></thead><tbody>' + rows.map(function (r) {
+        return '<tr' + (r[1] === 'total' ? ' class="rt"' : '') + '><td class="dl">' + r[0] + '</td><td>' + sc[0][r[1]] + (r[1] === 'xeri' && sc[0].xn ? ' (' + sc[0].xn + ')' : '') + '</td><td>' + sc[1][r[1]] + (r[1] === 'xeri' && sc[1].xn ? ' (' + sc[1].xn + ')' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="pbtns">' + (PL.over ? '<button type="button" class="btn primary" data-pa="finish">See final scores</button>' :
+        '<button type="button" class="btn primary" data-pa="again">Next deal</button><button type="button" class="btn" data-pa="leave">Score sheet</button>') + '</div></div>';
+  }
+  ACT.xeri = function (a, b) {
+    if (a === 'card' && PL.phase === 'play' && PL.st.turn === 0 && !PL.busy) {
+      var i = +b.dataset.i; if (PL.st.hands[0][i]) xPlay(0, i);
+    }
+  };
+
+  /* ----- Farkle ----- */
+  var PIPS = { 1: [5], 2: [3, 7], 3: [3, 5, 7], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
+  function dieFace(v) { var s = ''; for (var i = 1; i <= 9; i++) s += '<i' + (PIPS[v].indexOf(i) >= 0 ? ' class="on"' : '') + '></i>'; return s; }
+  function fkNext(g) {
+    if (g.over) return null;
+    var me = g.vs.me, cpu = g.vs.cpu, first = g.vs.first === cpu ? cpu : me, ord = [first, first === me ? cpu : me];
+    var last = g.rounds[g.rounds.length - 1], col = scoreCol(g);
+    if (last) for (var i = 0; i < 2; i++) if (typeof cellVal(last, ord[i], col.id) !== 'number') return { pid: ord[i], row: last };
+    return { pid: ord[0], row: null };
+  }
+  function fkMustBeat(g, pid) {
+    var o = pid === g.vs.me ? g.vs.cpu : g.vs.me;
+    return g.vs.finalBy === o ? total(g, o) : null;
+  }
+  START.farkle = function (g) {
+    var nx = fkNext(g);
+    PL.dice = []; PL.sel = []; PL.kept = []; PL.tt = 0; PL.left = 6; PL.title = 'Farkle';
+    if (!nx) { PL.phase = 'done'; PL.over = true; PL.msg = ''; return; }
+    PL.who = nx.pid;
+    var mb = fkMustBeat(g, nx.pid);
+    if (nx.pid === g.vs.me) {
+      PL.phase = 'start';
+      PL.msg = mb != null ? 'Last turn. You need more than ' + commas(mb) + ' in total to win, so ' + commas(mb - total(g, g.vs.me) + 50) + ' or more this turn.' : 'Your turn.';
+    } else { PL.phase = 'cpu'; PL.msg = 'The computer’s turn.'; later(fkCpuRoll, 800); }
+  };
+  function fkRoll() {
+    PL.dice = []; for (var i = 0; i < PL.left; i++) PL.dice.push(1 + rnd(6));
+    PL.sel = []; PL.rolled = true;
+    return FK.canScore(PL.dice);
+  }
+  function fkSelScore() { return PL.sel.length ? FK.score(PL.sel.map(function (i) { return PL.dice[i]; })) : -1; }
+  function fkRecord(pts) {
+    var g = G(), nx = fkNext(g); if (!nx) return;
+    var col = scoreCol(g), pid = nx.pid, row = nx.row || addRow(g, {}, '');
+    if (!row.s[pid]) row.s[pid] = {};
+    row.s[pid][col.id] = pts;
+    var over = false;
+    if (!g.vs.finalBy) { if (total(g, pid) >= g.vs.target) g.vs.finalBy = pid; }
+    else if (pid !== g.vs.finalBy) over = true;
+    if (over) { g.over = true; g.endedAt = Date.now(); }
+    touch(g.id); render();
+    if (over) { PL.phase = 'done'; PL.over = true; PL.msg = ''; playRender(); return; }
+    var trig = g.vs.finalBy === pid && total(g, pid) >= g.vs.target;
+    later(function () {
+      START.farkle(G());
+      if (trig) PL.msg = (pid === g.vs.me ? 'You reached ' : 'The computer reached ') + commas(g.vs.target) + '. ' + PL.msg;
+      playRender();
+    }, 900);
+  }
+  function fkCpuRoll() {
+    var g = G(), ok = fkRoll();
+    PL.msg = 'The computer rolls ' + PL.left + (PL.left === 1 ? ' die.' : ' dice.');
+    playRender();
+    if (!ok) {
+      later(function () { PL.msg = 'Farkle! The computer loses ' + commas(PL.tt) + ' and scores 0 this turn.'; PL.dead = true; playRender(); later(function () { PL.dead = false; fkRecord(0); }, 1700); }, 700);
+      return;
+    }
+    later(function () {
+      var mb = fkMustBeat(g, g.vs.cpu);
+      var ch = FK.choose(PL.dice, PL.tt, PL.left, { mine: total(g, g.vs.cpu), target: g.vs.target, oppNear: total(g, g.vs.me) >= g.vs.target * 0.85, mustBeat: mb }, g.vs.level);
+      PL.sel = ch.idx;
+      var s = fkSelScore();
+      PL.msg = 'The computer sets aside ' + PL.sel.length + (PL.sel.length === 1 ? ' die' : ' dice') + ' for ' + commas(s) + '.';
+      playRender();
+      later(function () {
+        PL.tt += s; PL.kept = PL.kept.concat(PL.sel.map(function (i) { return PL.dice[i]; }));
+        var hot = PL.sel.length === PL.left;
+        PL.left = PL.left - PL.sel.length || 6;
+        if (hot) PL.kept = [];
+        PL.dice = []; PL.sel = [];
+        if (ch.bank) { PL.msg = 'The computer banks ' + commas(PL.tt) + '.'; playRender(); later(function () { fkRecord(PL.tt); }, 1100); }
+        else { PL.msg = hot ? 'Hot dice: the computer rolls all six again.' : 'The computer has ' + commas(PL.tt) + ' this turn and rolls on.'; playRender(); later(fkCpuRoll, 900); }
+      }, 1000);
+    }, 900);
+  }
+  VIEW.farkle = function (g) {
+    var human = PL.who === g.vs.me && PL.phase !== 'cpu', ss = fkSelScore(), valid = ss > 0;
+    var out = standHTML(g, PL.phase === 'done' ? null : PL.who) + msgHTML();
+    if (PL.phase === 'done') {
+      return out + '<div class="presult"><h3>' + esc(matchLine(g)) + '</h3><p class="note">After someone reaches ' + commas(g.vs.target) + ', the other player gets one last turn.</p>' +
+        '<div class="pbtns"><button type="button" class="btn primary" data-pa="finish">See final scores</button></div></div>';
+    }
+    var shown = PL.tt + (human && valid ? ss : 0);
+    out += '<div class="fkturn"><span class="n">' + (human ? 'Your turn' : 'Computer’s turn') + '</span><span class="big">' + commas(shown) + '</span>' +
+      '<span class="n">' + (human && valid ? '+' + commas(ss) + ' selected' : PL.tt ? 'so far this turn' : '&nbsp;') + '</span></div>';
+    out += '<div class="dice kept" aria-label="Set aside this turn">' + PL.kept.map(function (v) { return '<span class="die kept" role="img" aria-label="' + v + '">' + dieFace(v) + '</span>'; }).join('') + '</div>';
+    out += '<div class="dice" role="group" aria-label="Your roll">' + (PL.dice.length ? PL.dice.map(function (v, i) {
+      var on = PL.sel.indexOf(i) >= 0, cls = 'die' + (on ? ' sel' : '') + (PL.rolled ? ' roll' : '') + (PL.dead ? ' dead' : '');
+      return human && PL.phase === 'pick' ? '<button type="button" class="' + cls + '" data-pa="die" data-i="' + i + '" aria-pressed="' + on + '" aria-label="Die showing ' + v + '">' + dieFace(v) + '</button>'
+        : '<span class="' + cls + '" role="img" aria-label="' + v + '">' + dieFace(v) + '</span>';
+    }).join('') : '<span class="pempty">' + PL.left + (PL.left === 1 ? ' die' : ' dice') + ' to roll</span>') + '</div>';
+    if (human) {
+      var rem = PL.left - (valid ? PL.sel.length : 0) || 6;
+      if (PL.phase === 'start') out += '<div class="pbtns"><button type="button" class="btn primary" data-pa="roll">Roll ' + PL.left + ' dice</button></div>';
+      else if (PL.phase === 'pick') {
+        out += '<div class="pbtns"><button type="button" class="btn primary" data-pa="roll"' + (valid ? '' : ' disabled') + '>Roll ' + rem + (rem === 1 ? ' die' : ' dice') + '</button>' +
+          '<button type="button" class="btn" data-pa="bank"' + (valid ? '' : ' disabled') + '>Bank ' + commas(PL.tt + Math.max(0, ss)) + '</button></div>' +
+          '<p class="note">' + (PL.sel.length && !valid ? 'Every die you set aside has to score.' : 'Tap the scoring dice to set aside, then roll the rest or bank.') + '</p>';
+      } else if (PL.phase === 'farkle') out += '<div class="pbtns"><button type="button" class="btn primary" data-pa="fkok">OK</button></div>';
+    }
+    out += '<details class="fkhelp"><summary>Scoring</summary><p>A 1 is 100 and a 5 is 50. Three of a kind is 100 times the number, but three 1s are 1,000. Four of a kind 1,000, five 2,000, six 3,000. A straight from 1 to 6, or three pairs, 1,500. Two sets of three 2,500. Score with all six dice and you roll all six again.</p></details>';
+    return out;
+  };
+  ACT.farkle = function (a, b) {
+    var g = G();
+    if (PL.who !== g.vs.me) return;
+    if (a === 'die' && PL.phase === 'pick') {
+      var i = +b.dataset.i, k = PL.sel.indexOf(i);
+      if (k >= 0) PL.sel.splice(k, 1); else PL.sel.push(i);
+      PL.msg = ''; playRender(); return;
+    }
+    if (a === 'roll') {
+      if (PL.phase === 'pick') {
+        var s = fkSelScore(); if (s <= 0) return;
+        var hot = PL.sel.length === PL.left;
+        PL.tt += s; PL.kept = hot ? [] : PL.kept.concat(PL.sel.map(function (j) { return PL.dice[j]; }));
+        PL.left = PL.left - PL.sel.length || 6;
+      } else if (PL.phase !== 'start') return;
+      var hotNow = PL.left === 6 && PL.tt > 0;
+      if (fkRoll()) { PL.phase = 'pick'; PL.msg = hotNow ? 'Hot dice! You rolled all six again.' : ''; }
+      else { PL.phase = 'farkle'; PL.dead = true; PL.msg = 'Farkle! Nothing scores' + (PL.tt ? ', so you lose the ' + commas(PL.tt) + ' from this turn.' : '.'); }
+      playRender(); return;
+    }
+    if (a === 'bank' && PL.phase === 'pick') {
+      var s2 = fkSelScore(); if (s2 <= 0) return;
+      PL.tt += s2; PL.phase = 'cpu'; PL.msg = 'You bank ' + commas(PL.tt) + '.';
+      playRender(); fkRecord(PL.tt); return;
+    }
+    if (a === 'fkok' && PL.phase === 'farkle') { PL.dead = false; PL.phase = 'cpu'; fkRecord(0); }
+  };
+
+  /* ----- Tavli ----- */
+  var TVN = { portes: 'Portes', plakoto: 'Plakoto', fevga: 'Fevga' };
+  var TVHELP = {
+    portes: 'Portes: land on a single checker to hit it and send it to the bar. A checker on the bar must come back in before anything else moves.',
+    plakoto: 'Plakoto: land on a single checker to pin it under yours. Pinning the other side’s last checker on its starting point wins double.',
+    fevga: 'Fevga: both sides move the same way round and nobody is hit. One checker holds a point. Your first checker must reach the bottom left before a second leaves the start.'
+  };
+  // The sheet's rows rotate Portes, Plakoto and Fevga, so the next row decides the game.
+  function tvVariant(g) {
+    var cyc = g.cycle && g.cycle.length ? g.cycle : ['Portes', 'Plakoto', 'Fevga'];
+    var nm = String(cyc[g.rounds.length % cyc.length] || '').toLowerCase();
+    return TVN[nm] ? nm : 'portes';
+  }
+  START.tavli = function (g) {
+    PL.v = tvVariant(g);
+    PL.T = TV.init(PL.v); PL.dice = []; PL.rem = []; PL.sel = null; PL.L = []; PL.made = []; PL.turns = 0; PL.lastTo = null; PL.result = null;
+    PL.title = 'Tavli · ' + TVN[PL.v];
+    if (!g.vs.next || (g.vs.next !== g.vs.me && g.vs.next !== g.vs.cpu)) { PL.phase = 'opening'; PL.turn = -1; PL.msg = 'Roll one die each to see who starts.'; return; }
+    PL.turn = g.vs.next === g.vs.cpu ? 1 : 0;
+    if (PL.turn === 0) { PL.phase = 'roll'; PL.msg = 'You won the last game, so you start.'; }
+    else { PL.phase = 'cpu'; PL.msg = 'The computer won the last game, so it starts.'; later(tvCpu, 1000); }
+  };
+  function tvRoll() {
+    var a = 1 + rnd(6), b = 1 + rnd(6);
+    PL.dice = a === b ? [a, a, a, a] : [a, b]; PL.rem = PL.dice.slice(); PL.made = []; PL.sel = null; PL.rolled = true;
+  }
+  function tvHumanStart() {
+    tvRoll(); PL.turns++;
+    PL.start = TV.clone(PL.T); PL.need0 = TV.maxLen(PL.T, 0, PL.rem); PL.need = PL.need0;
+    var d = PL.dice[0] === PL.dice[1] ? 'double ' + PL.dice[0] + 's' : PL.dice[0] + ' and ' + PL.dice[1];
+    if (!PL.need) { PL.phase = 'nomove'; PL.L = []; PL.msg = 'You rolled ' + d + '. No legal moves.'; return; }
+    PL.phase = 'move'; PL.L = TV.legal(PL.T, 0, PL.rem, PL.need, true);
+    PL.msg = 'You rolled ' + d + '.' + (PL.need < PL.dice.length ? ' Only ' + PL.need + (PL.need === 1 ? ' move is' : ' moves are') + ' possible.' : '');
+  }
+  function tvAfterMove(pl, m, before) {
+    var T = PL.T, note = '';
+    if (T.v === 'portes' && T.bar[1 - pl] > before.bar[1 - pl]) note = pl === 0 ? 'Hit!' : 'The computer hits your checker.';
+    if (T.v === 'plakoto' && m.t > 0) {
+      var a = TV.abs(T.v, pl, m.t);
+      if (T.c[1 - pl][a] && !before.c[pl][a]) note = pl === 0 ? 'Pinned.' : 'The computer pins your checker.';
+    }
+    return note;
+  }
+  function tvHumanMove(m) {
+    var before = PL.T;
+    PL.T = TV.apply(PL.T, 0, m); PL.made.push(m); PL.rem.splice(PL.rem.indexOf(m.d), 1); PL.need--; PL.sel = null;
+    PL.msg = tvAfterMove(0, m, before);
+    if (TV.winner(PL.T)) return tvEnd();
+    if (PL.need > 0) PL.L = TV.legal(PL.T, 0, PL.rem, PL.need, false);
+    if (PL.need <= 0 || !PL.L.length) { PL.phase = 'confirm'; PL.L = []; PL.msg = (PL.msg ? PL.msg + ' ' : '') + 'Tap End turn, or Undo to change your moves.'; }
+  }
+  function tvCpu() {
+    var g = G(); if (!g) return;
+    PL.phase = 'cpu'; PL.turn = 1; PL.sel = null; PL.L = [];
+    tvRoll(); PL.turns++;
+    var d = PL.dice[0] === PL.dice[1] ? 'double ' + PL.dice[0] + 's' : PL.dice[0] + ' and ' + PL.dice[1];
+    var seq = TV.choose(PL.T, 1, PL.dice, g.vs.level);
+    PL.msg = 'The computer rolled ' + d + (seq.length ? '.' : ' and cannot move.');
+    playRender();
+    var i = 0;
+    (function step() {
+      later(function () {
+        if (i >= seq.length) { tvYourTurn(); return; }
+        var m = seq[i++], before = PL.T;
+        PL.T = TV.apply(PL.T, 1, m); PL.rem.splice(PL.rem.indexOf(m.d), 1);
+        PL.lastTo = m.t === 0 ? 'off' : TV.abs(PL.v, 1, m.t);
+        var note = tvAfterMove(1, m, before); if (note) PL.msg = note;
+        if (TV.winner(PL.T)) { tvEnd(); return; }
+        playRender(); step();
+      }, i === 0 ? 900 : 650);
+    })();
+  }
+  function tvYourTurn() { PL.turn = 0; PL.phase = 'roll'; PL.dice = []; PL.rem = []; PL.msg = (PL.msg && /hits|pins/.test(PL.msg) ? PL.msg + ' ' : '') + 'Your turn.'; playRender(); }
+  function tvEnd() {
+    var g = G(), w = TV.winner(PL.T), win = w.w === 0 ? g.vs.me : g.vs.cpu, lose = w.w === 0 ? g.vs.cpu : g.vs.me, vals = {};
+    vals[win] = w.pts; vals[lose] = 0;
+    addRow(g, vals, ''); g.vs.next = win;
+    PL.phase = 'done'; PL.result = w; PL.over = checkMatch(g); PL.sel = null; PL.L = []; PL.lastTo = null;
+    var who = w.w === 0 ? 'You win' : 'The computer wins';
+    PL.msg = '';
+    PL.resultText = w.how === 'mother' ? who + ' this game by pinning the last checker on its starting point: 2 points.' :
+      w.how === 'double' ? who + ' a double game: 2 points, because ' + (w.w === 0 ? 'the computer' : 'you') + ' had not borne off any checkers.' :
+        who + ' this game: 1 point.';
+    touch(g.id); render(); playRender();
+  }
+  function tvSVG() {
+    var T = PL.T, v = T.v, s = [], a, k, human = PL.turn === 0 && PL.phase === 'move';
+    var srcs = {}, tgts = {};
+    if (human) PL.L.forEach(function (m) { srcs[m.f === 25 ? 'bar' : m.f - 1] = 1; if (PL.sel === m.f) tgts[m.t === 0 ? 'off' : m.t - 1] = 1; });
+    var cx = function (a) { return a < 6 ? 254 + (5 - a) * 36 + 18 : a < 12 ? 10 + (11 - a) * 36 + 18 : a < 18 ? 10 + (a - 12) * 36 + 18 : 254 + (a - 18) * 36 + 18; };
+    s.push('<rect class="tb-frame" x="0" y="0" width="520" height="430" rx="12"/>');
+    s.push('<rect class="tb-felt" x="10" y="10" width="216" height="410"/><rect class="tb-felt" x="254" y="10" width="216" height="410"/>');
+    s.push('<rect class="tb-tray' + (tgts.off ? ' tb-tgtf' : '') + '" x="478" y="10" width="34" height="410" rx="4"/>');
+    for (a = 0; a < 24; a++) {
+      var x = cx(a), top = a >= 12;
+      s.push('<polygon class="tb-p' + (a % 2) + (tgts[a] ? ' tb-tgt' : '') + '" points="' + (x - 18) + ',' + (top ? 10 : 420) + ' ' + (x + 18) + ',' + (top ? 10 : 420) + ' ' + x + ',' + (top ? 178 : 252) + '"/>');
+    }
+    function checker(x, y, pl, cls, label) {
+      return '<circle class="ck ck' + pl + (cls || '') + '" cx="' + x + '" cy="' + y + '" r="16"/><circle class="ckin ck' + pl + 'i" cx="' + x + '" cy="' + y + '" r="10"/>' +
+        (label ? '<text class="ckn ck' + pl + 't" x="' + x + '" y="' + (y + 5) + '">' + label + '</text>' : '');
+    }
+    for (a = 0; a < 24; a++) {
+      var list = [], c0 = T.c[0][a], c1 = T.c[1][a];
+      if (c0 && c1) { var under = T.top[a] === 0 ? 1 : 0; list.push(under); for (k = 0; k < T.c[1 - under][a]; k++) list.push(1 - under); }
+      else for (k = 0; k < c0 + c1; k++) list.push(c0 ? 0 : 1);
+      var n = list.length, xx = cx(a), up = a >= 12, vis = Math.min(n, 5);
+      for (k = 0; k < vis; k++) {
+        var y = up ? 27 + k * 32 : 403 - k * 32, isTop = k === vis - 1, cls = '';
+        if (isTop && list[k] === 0 && human && srcs[a]) cls = PL.sel === a + 1 ? ' tb-sel' : ' tb-can';
+        if (isTop && PL.lastTo === a) cls += ' tb-last';
+        if (k === 0 && n > 1 && list[0] !== list[1]) cls += ' tb-pin';
+        s.push(checker(xx, y, list[k], cls, isTop && n > 5 ? n : ''));
+      }
+    }
+    [0, 1].forEach(function (pl) {
+      var n = T.bar[pl]; if (!n) return;
+      var cls = pl === 0 && human && srcs.bar ? (PL.sel === 25 ? ' tb-sel' : ' tb-can') : '';
+      s.push(checker(240, pl === 0 ? 270 : 160, pl, cls, n > 1 ? n : ''));
+    });
+    for (k = 0; k < T.off[0]; k++) s.push('<rect class="ck0" x="481" y="' + (412 - k * 9) + '" width="28" height="7" rx="2"/>');
+    for (k = 0; k < T.off[1]; k++) s.push('<rect class="ck1" x="481" y="' + (11 + k * 9) + '" width="28" height="7" rx="2"/>');
+    if (PL.dice.length) {
+      var small = PL.dice.length === 4, sz = small ? 28 : 34, gap = 8;
+      var w = PL.dice.length * sz + (PL.dice.length - 1) * gap, x0 = (PL.turn === 1 ? 118 : 362) - w / 2, y0 = 215 - sz / 2;
+      var P = { 1: [[.5, .5]], 2: [[.27, .27], [.73, .73]], 3: [[.27, .27], [.5, .5], [.73, .73]], 4: [[.27, .27], [.73, .27], [.27, .73], [.73, .73]], 5: [[.27, .27], [.73, .27], [.5, .5], [.27, .73], [.73, .73]], 6: [[.27, .25], [.73, .25], [.27, .5], [.73, .5], [.27, .75], [.73, .75]] };
+      // Dice already played are faded.
+      var shown = PL.dice.slice(), usedFlags = shown.map(function () { return false; }), pool = PL.rem.slice();
+      shown.forEach(function (d, i) { var j = pool.indexOf(d); if (j >= 0) pool.splice(j, 1); else usedFlags[i] = true; });
+      shown.forEach(function (d, i) {
+        var dx = x0 + i * (sz + gap);
+        s.push('<g class="' + (usedFlags[i] ? 'tdie used' : 'tdie') + (PL.rolled ? ' roll' : '') + '"><rect x="' + dx + '" y="' + y0 + '" width="' + sz + '" height="' + sz + '" rx="6"/>' +
+          P[d].map(function (p) { return '<circle cx="' + (dx + p[0] * sz) + '" cy="' + (y0 + p[1] * sz) + '" r="' + (sz * 0.085) + '"/>'; }).join('') + '</g>');
+      });
+    }
+    if (human) {
+      for (a = 0; a < 24; a++) { var tx = cx(a); s.push('<rect class="tb-hit" data-pt="' + a + '" x="' + (tx - 18) + '" y="' + (a >= 12 ? 10 : 215) + '" width="36" height="205"/>'); }
+      s.push('<rect class="tb-hit" data-pt="bar" x="226" y="10" width="28" height="410"/><rect class="tb-hit" data-pt="off" x="474" y="10" width="42" height="410"/>');
+    }
+    return '<svg class="tboard" viewBox="0 0 520 430" role="img" aria-label="Tavli board. You have the light checkers, ' + T.off[0] + ' borne off; the computer has ' + T.off[1] + ' borne off.">' + s.join('') + '</svg>';
+  }
+  VIEW.tavli = function (g) {
+    var T = PL.T, turnPid = PL.phase === 'done' || PL.phase === 'opening' ? null : PL.turn === 0 ? g.vs.me : g.vs.cpu;
+    var out = standHTML(g, turnPid) + msgHTML() + tvSVG();
+    out += '<p class="note">You have the light checkers. ' + (T.v === 'fevga' ? 'Both sides go round the same way.' : 'Yours move from the top right, round the board, and bear off at the bottom right.') +
+      ' Pips to go: you ' + TV.pip(T, 0) + ', computer ' + TV.pip(T, 1) + '.</p>';
+    if (PL.phase === 'done') {
+      return out + '<div class="presult"><h3>' + esc(PL.over ? matchLine(g) : PL.resultText) + '</h3>' + (PL.over ? '<p class="note">' + esc(PL.resultText) + '</p>' : '') +
+        '<div class="pbtns">' + (PL.over ? '<button type="button" class="btn primary" data-pa="finish">See final scores</button>' :
+          '<button type="button" class="btn primary" data-pa="again">Next game: ' + esc(TVN[tvVariant(g)]) + '</button><button type="button" class="btn" data-pa="leave">Score sheet</button>') + '</div></div>';
+    }
+    var btns = '';
+    if (PL.phase === 'opening') btns = '<button type="button" class="btn primary" data-pa="opening">Roll to start</button>';
+    if (PL.phase === 'roll') btns = '<button type="button" class="btn primary" data-pa="roll">Roll dice</button>';
+    if (PL.phase === 'nomove') btns = '<button type="button" class="btn primary" data-pa="pass">Pass</button>';
+    if (PL.phase === 'move' && PL.made.length) btns = '<button type="button" class="btn" data-pa="undo">Undo</button>';
+    if (PL.phase === 'confirm') btns = '<button type="button" class="btn" data-pa="undo">Undo</button><button type="button" class="btn primary" data-pa="endturn">End turn</button>';
+    out += '<div class="pbtns">' + btns + '</div>';
+    if (PL.phase === 'move') out += '<p class="note">' + (PL.sel == null ? 'Tap one of your outlined checkers.' : 'Tap a highlighted point to move there' + (PL.L.some(function (m) { return m.f === PL.sel && m.t === 0; }) ? ', or the tray on the right to bear off' : '') + '.') + '</p>';
+    out += '<p class="note">' + esc(TVHELP[T.v]) + '</p>';
+    return out;
+  };
+  ACT.tavli = function (a, b) {
+    var g = G();
+    if (a === 'opening' && PL.phase === 'opening') {
+      var x, y; do { x = 1 + rnd(6); y = 1 + rnd(6); } while (x === y);
+      PL.turn = x > y ? 0 : 1;
+      PL.msg = 'You rolled ' + x + ', the computer rolled ' + y + '. ' + (PL.turn === 0 ? 'You start.' : 'The computer starts.');
+      if (PL.turn === 0) PL.phase = 'roll'; else { PL.phase = 'cpu'; later(tvCpu, 1300); }
+      playRender(); return;
+    }
+    if (PL.turn !== 0) return;
+    if (a === 'roll' && PL.phase === 'roll') { tvHumanStart(); playRender(); return; }
+    if (a === 'pass' && PL.phase === 'nomove') { PL.dice = []; PL.rem = []; tvCpu(); return; }
+    if (a === 'undo' && (PL.phase === 'move' || PL.phase === 'confirm') && PL.made.length) {
+      PL.T = TV.clone(PL.start); PL.rem = PL.dice.slice(); PL.made = []; PL.need = PL.need0; PL.sel = null;
+      PL.L = TV.legal(PL.T, 0, PL.rem, PL.need, true); PL.phase = 'move'; PL.msg = 'Moves undone.'; playRender(); return;
+    }
+    if (a === 'endturn' && PL.phase === 'confirm') { PL.lastTo = null; tvCpu(); return; }
+    if (a === 'point' && PL.phase === 'move') {
+      var key = b, own = key === 'bar' ? 25 : key === 'off' ? 0 : +key + 1;
+      if (PL.sel != null && key !== 'bar') {
+        var ms = PL.L.filter(function (m) { return m.f === PL.sel && m.t === own; });
+        if (ms.length) { ms.sort(function (p, q) { return p.d - q.d; }); tvHumanMove(ms[0]); playRender(); return; }
+      }
+      if (key !== 'off' && PL.L.some(function (m) { return m.f === own; })) {
+        PL.sel = PL.sel === own ? null : own;
+        // One place to go: move straight away.
+        var dests = {}; PL.L.forEach(function (m) { if (m.f === own) dests[m.t] = m; });
+        var keys = Object.keys(dests);
+        if (PL.sel != null && keys.length === 1 && PL.rem.every(function (d) { return d === PL.rem[0]; })) { tvHumanMove(dests[keys[0]]); }
+      } else PL.sel = null;
+      playRender();
+    }
+  };
+
   start();
 })();
 </script>
-<script>
-// Offline support: works from the home screen without a connection once it has been opened online.
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
-}
-</script>
-</body>
-</html>
+
+</body></html>

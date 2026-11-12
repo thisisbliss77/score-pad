@@ -1,25 +1,38 @@
-// Score Pad offline cache. Bump the version when you upload a new index.html.
-const CACHE = 'score-pad-v1';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+// Score Pad offline support. Change VERSION whenever you upload a new index.html.
+var VERSION = 'scorepad-v4';
+var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon-32.png'];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)).then(() => self.skipWaiting()));
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== VERSION; }).map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
 });
 
-// Network first, so a new version shows up as soon as you are online; the cache is the fallback when offline.
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  event.respondWith(
-    fetch(req).then((res) => {
-      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((cache) => cache.put(req, copy)); }
+self.addEventListener('fetch', function (e) {
+  var req = e.request;
+  if (req.method !== 'GET') return;
+  var url = new URL(req.url);
+  var fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  if (url.origin !== location.origin && !fonts) return;
+  // The page: use the network when it's there so updates arrive, and the saved copy when offline.
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req).then(function (res) {
+      var copy = res.clone();
+      caches.open(VERSION).then(function (c) { c.put('index.html', copy); });
       return res;
-    }).catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
-  );
+    }).catch(function () { return caches.match('index.html'); }));
+    return;
+  }
+  // Everything else: the saved copy first, refreshed in the background.
+  e.respondWith(caches.match(req).then(function (hit) {
+    var net = fetch(req).then(function (res) {
+      if (res && (res.ok || res.type === 'opaque')) { var copy = res.clone(); caches.open(VERSION).then(function (c) { c.put(req, copy); }); }
+      return res;
+    }).catch(function () { return hit; });
+    return hit || net;
+  }));
 });
