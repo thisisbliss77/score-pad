@@ -1506,7 +1506,7 @@ button.card.can {
 }
 /* Both taken piles are the same width and sit at the right edge, so their counts line up. */
 .xtable .tpile {
-  width: 158px;
+  width: 170px;
 }
 .deckbox > .ghostcard {
   margin-bottom: 6px;
@@ -1540,29 +1540,31 @@ button.card.can {
   position: relative;
   display: flex;
   align-items: flex-end;
-  width: 57px;
-  min-height: 48px;
+  width: 86px;
+  /* Tall enough to hold the raised xeri cards, so they never stick out over anything above. */
+  min-height: 70px;
 }
+/* Xeri cards fan out above the counter, upright and 17px apart: each card may cover the suit of the
+   one behind it, but never its rank (even a 10), and they sit high enough that the counter never does. */
 .tstack .card.peek {
   position: absolute;
-  left: 2px;
-  bottom: 10px;
+  left: 0;
+  bottom: 22px;
   width: 34px;
   height: 46px;
-  padding: 3px 4px;
-  transform: rotate(-6deg);
+  padding: 3px 2px;
+}
+.tstack .card.peek .cr {
+  letter-spacing: -1.5px;
 }
 .tstack .card.peek:nth-child(2) {
-  left: 12px;
-  transform: rotate(2deg);
+  left: 17px;
 }
 .tstack .card.peek:nth-child(3) {
-  left: 22px;
-  transform: rotate(9deg);
+  left: 34px;
 }
 .tstack .card.peek:nth-child(n + 4) {
-  left: 22px;
-  transform: rotate(14deg);
+  left: 51px;
 }
 .tstack .card.peek .cr {
   font-size: 15px;
@@ -2523,6 +2525,117 @@ button.pilebtn:not(:disabled) span:last-child {
   font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
+}
+.kkpop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.kkpopbox {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  width: min(100%, 460px);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.kkopt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--sunk);
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+}
+.kkopt:hover,
+.kkopt:focus-visible {
+  border-color: var(--accent);
+}
+/* Cards in the joker pop-up look like ordinary cards, just bigger; the joker is outlined. */
+.kkbig {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.kkbig .card {
+  width: 58px;
+  height: 84px;
+  padding: 5px 6px;
+}
+.kkbig .card .cr {
+  font-size: 22px;
+}
+.kkbig .card .cs {
+  font-size: 30px;
+}
+.kkbig .card {
+  position: relative;
+}
+.kkbig .card.kj {
+  background: #fffdf7;
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #1c1c1e;
+  box-shadow: 0 0 0 3px var(--lead);
+}
+.kkbig .card.kj.red,
+.kkbig .card.kj .cs {
+  color: inherit;
+}
+.kkbig .card.kj.red {
+  color: #c22d2d;
+}
+.kkbig .jkb {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  color: #6a3fb5;
+  display: flex;
+}
+.kkbig .jkb .jst {
+  width: 18px;
+  height: 18px;
+}
+.kklab {
+  font-weight: 600;
+}
+.kklogbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.kklog {
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+.kklog h4 {
+  margin: 4px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.kklog ol {
+  margin: 0 0 6px;
+  padding-left: 22px;
 }
 .lccount {
   font-size: 12px;
@@ -4081,6 +4194,10 @@ td.kauto .cell {
         if (hs.length) vs.humans = hs;
       }
       if (typeof g.vs.partner === 'string') vs.partner = txt(g.vs.partner, 24, 'Partner');
+      if (Array.isArray(g.vs.kkLog))
+        vs.kkLog = g.vs.kkLog.slice(-400).map(function (t) {
+          return txt(t, 240, '');
+        });
       if (Array.isArray(g.vs.cpuNames))
         vs.cpuNames = g.vs.cpuNames.slice(0, 3).map(function (n) {
           return txt(n, 24, 'Computer');
@@ -8251,6 +8368,10 @@ td.kauto .cell {
   }
   function playRender() {
     if (!PL) return;
+    if (dragActive()) {
+      PL.renderLater = true;
+      return;
+    }
     var g = G();
     if (!g || !vsOf(g)) {
       closePlay();
@@ -10092,11 +10213,16 @@ td.kauto .cell {
   function gmApply(seat, mv) {
     var M = GMS[PL.kind];
     if (mv == null) return;
+    var logAt = PL.st.log ? PL.st.log.length : 0;
     var h = humanSeat(seat),
       snap = h && M.undoable && M.undoable(PL.st, mv) ? JSON.stringify(PL.st) : null;
     if (h) clearNewCards(seat);
     var ev = M.apply(PL.st, seat, mv) || {};
     if (ev.msg != null) PL.msg = ev.msg;
+    if (M.logLine && !ev.bad) {
+      var line = M.logLine(PL.st, seat, mv, ev);
+      if (line) (PL.st.log = PL.st.log || []).splice(logAt, 0, line);
+    }
     PL.pause = ev.pause || 0;
     if (h) {
       PL.ui = {};
@@ -18013,6 +18139,16 @@ td.kauto .cell {
     }
     m.items = o;
   }
+  // In the joker pop-up a joker is drawn exactly like the card it would become, with a small jester badge.
+  function kkBigCardHTML(x) {
+    if (!kkWild(x.c)) return showCard(x.c);
+    var red = x.s === 1 || x.s === 2;
+    return (
+      '<span class="card kj' + (red ? ' red' : '') + '" role="img" aria-label="joker as the ' + esc(kkName(x.r, x.s)) + '">' +
+      '<span class="cr">' + kkRank(x.r) + '<small>' + SU[x.s] + '</small></span><span class="cs">' + SU[x.s] + '</span>' +
+      '<span class="jkb">' + JESTER_SM + '</span></span>'
+    );
+  }
   function kkItemHTML(x) {
     if (!kkWild(x.c)) return showCard(x.c);
     var red = x.s === 1 || x.s === 2;
@@ -18401,13 +18537,22 @@ td.kauto .cell {
       }
       var h = st.hands[0],
         ui = P.ui;
-      if (a === 'card') {
-        ui.choices = null;
-        return selToggle(P, el.dataset.id);
+      if (a === 'kklog') {
+        PL.kklog = !PL.kklog;
+        return true;
       }
+      if (a === 'kkcancel') {
+        ui.pending = null;
+        ui.popOpts = null;
+        return true;
+      }
+      if (ui.popOpts && a !== 'kkchoice') return null;
+      if (a === 'card') return selToggle(P, el.dataset.id);
       if (a === 'kkchoice' && ui.pending) {
         var mv = ui.pending;
         mv.pick = +el.dataset.i;
+        ui.pending = null;
+        ui.popOpts = null;
         return mv;
       }
       var sel = selCards(P, h);
@@ -18428,10 +18573,11 @@ td.kauto .cell {
           }),
           pick: 0
         };
-        if (it.length === 1) return m1;
+        if (!sel.some(kkWild)) return m1;
         ui.pending = m1;
-        ui.choices = it.map(kkDescribe);
-        P.msg = 'How should the joker' + (sel.filter(kkWild).length > 1 ? 's' : '') + ' count?';
+        ui.popOpts = it.map(function (m) {
+          return { label: kkDescribe(m), items: m.items };
+        });
         return true;
       }
       if (a === 'mtarget') {
@@ -18469,14 +18615,14 @@ td.kauto .cell {
           return true;
         }
         var m2 = { add: c.id, to: +el.dataset.i, pick: 0 };
-        if (ad.length === 1) return m2;
+        if (!kkWild(c)) return m2;
         ui.pending = m2;
-        ui.choices = ad.map(function (x) {
-          return (
-            'Joker as ' + kkRank(x.r) + SU[x.s] + (x.end ? (x.end === 'low' ? ' (bottom)' : ' (top)') : '')
-          );
+        ui.popOpts = ad.map(function (x) {
+          return {
+            label: 'Joker as the ' + kkName(x.r, x.s),
+            items: x.end === 'low' ? [x].concat(m.items) : m.items.concat([x])
+          };
         });
-        P.msg = 'Declare the joker:';
         return true;
       }
       if (a === 'discard') {
@@ -18530,7 +18676,7 @@ td.kauto .cell {
             return mv.meld.indexOf(x.id) >= 0;
           }),
           it = kkInterps(cards)[mv.pick || 0];
-        if (!it) return { msg: 'That meld isn’t valid.' };
+        if (!it) return { msg: 'That meld isn’t valid.', bad: 1 };
         takeIds(h, mv.meld);
         var m = { owner: seat, type: it.type, s: it.s, r: it.r, lo: it.lo, hi: it.hi, items: it.items };
         kkOrder(m);
@@ -18546,7 +18692,7 @@ td.kauto .cell {
             return x.id === mv.add;
           })[0],
           opt = card && kkAdds(mm, card)[mv.pick || 0];
-        if (!opt) return { msg: 'That card doesn’t fit.' };
+        if (!opt) return { msg: 'That card doesn’t fit.', bad: 1 };
         takeIds(h, [mv.add]);
         kkPlace(mm, opt);
         st.did = true;
@@ -18574,7 +18720,7 @@ td.kauto .cell {
             return x.id === mv.swap;
           })[0],
           idx = kkSwapIdx(m3, c2);
-        if (idx < 0) return { msg: 'That card doesn’t match a joker there.' };
+        if (idx < 0) return { msg: 'That card doesn’t match a joker there.', bad: 1 };
         takeIds(h, [mv.swap]);
         var j = m3.items[idx].c;
         m3.items[idx].c = c2;
@@ -18599,7 +18745,7 @@ td.kauto .cell {
             return x.id === mv.discard;
           })[0],
           pr = KK.discardProblem(st, seat, d);
-        if (pr && seat === 0) return { msg: pr };
+        if (pr && seat === 0) return { msg: pr, bad: 1 };
         takeIds(h, [mv.discard]);
         st.pile.push(d);
         st.did = false;
@@ -18630,6 +18776,7 @@ td.kauto .cell {
       };
     },
     record: function (g, st, res, P) {
+      g.vs.kkLog = (st.log || []).slice(-400);
       var r = rowFor(g, P.seats[st.dealer] && P.seats[st.dealer].pid),
         cid = colId(g, 'Points');
       P.seats.forEach(function (s, i) {
@@ -18733,21 +18880,28 @@ td.kauto .cell {
               .join('')
           : '<span class="pempty">No melds yet</span>') +
         '</div>';
-      if (P.ui.choices)
+      if (P.ui.popOpts)
         out +=
-          '<div class="bids kkch">' +
-          P.ui.choices
-            .map(function (t, i) {
+          '<div class="kkpop" role="dialog" aria-modal="true" aria-labelledby="kkpop-t"><div class="kkpopbox"><h3 id="kkpop-t">Play the joker as…</h3>' +
+          P.ui.popOpts
+            .map(function (o, i) {
               return (
-                '<button type="button" class="btn" data-pa="kkchoice" data-i="' +
-                i +
-                '">' +
-                esc(t) +
-                '</button>'
+                '<button type="button" class="kkopt" data-pa="kkchoice" data-i="' + i + '" aria-label="' + esc(o.label) + '">' +
+                '<span class="kkbig">' + o.items.map(kkBigCardHTML).join('') + '</span><span class="kklab">' + esc(o.label) + '</span></button>'
               );
             })
             .join('') +
-          '</div>';
+          '<button type="button" class="btn" data-pa="kkcancel">Cancel</button></div></div>';
+      var lg = function (list) {
+        return list && list.length
+          ? '<ol>' + list.map(function (t) { return '<li>' + esc(forNames(t)) + '</li>'; }).join('') + '</ol>'
+          : '<p class="note">Nothing yet.</p>';
+      };
+      out +=
+        '<div class="kklogbar"><button type="button" class="btn small' + (PL.kklog ? ' on' : '') + '" data-pa="kklog" aria-expanded="' + !!PL.kklog + '">Log</button></div>' +
+        (PL.kklog
+          ? '<div class="kklog"><h4>This round</h4>' + lg(st.log) + '<h4>Previous round</h4>' + lg((G() && G().vs.kkLog) || null) + '</div>'
+          : '');
       out += handButtons(st.hands[0] || [], {
         can: function () {
           return my && st.phase === 'act';
@@ -18837,8 +18991,19 @@ td.kauto .cell {
         return [btn('kksim', 'See who wins', true), btn('leave', 'Score sheet')];
       return null;
     },
+    // One line for the round log. Cards drawn from the stock stay private, even your own,
+    // since in pass-and-play someone else may read the log.
+    logLine: function (st, seat, mv, ev) {
+      var who = seat === 0 ? 'You' : st.names[seat];
+      if (mv.draw === 'stock') return who + (seat === 0 ? ' draw' : ' draws') + ' from the stock.';
+      return ev.msg || '';
+    },
     idle: function (a, el, st, P) {
       var g = G();
+      if (a === 'kklog') {
+        PL.kklog = !PL.kklog;
+        return true;
+      }
       if (!g || P.phase !== 'done') return false;
       if (a === 'kkyes' && st.kkAsk) {
         kkBuy(g, st.kkAsk.pid);
@@ -20381,38 +20546,42 @@ td.kauto .cell {
     }
     playRender();
   }
+  // The card being dragged, if any. Kept outside any one screen so a redraw mid-drag can't lose it.
+  var DRAG = null,
+    dragSuppress = false,
+    dragWired = false;
+  // From the moment a finger or mouse goes down on a card until it lifts, the hand isn't redrawn:
+  // a phone sends every touch event to the element first touched, so replacing it would lose them.
+  function dragActive() {
+    return !!DRAG;
+  }
+  function dragCleanup() {
+    document.querySelectorAll('.card.ghost').forEach(function (n) {
+      n.remove();
+    });
+  }
   function dragInit(el) {
-    var D = null,
-      suppress = false;
     var cardAt = function (t) {
       return t && t.closest ? t.closest('.hand > [data-id], .hand > [data-i]') : null;
     };
     var begin = function (x, y) {
-      D.on = true;
-      var r = D.card.getBoundingClientRect();
-      D.ghost = D.card.cloneNode(true);
-      D.ghost.classList.add('ghost');
-      D.ghost.style.cssText =
-        'position:fixed;left:' +
-        r.left +
-        'px;top:' +
-        r.top +
-        'px;width:' +
-        r.width +
-        'px;height:' +
-        r.height +
-        'px;pointer-events:none;z-index:99;margin:0';
-      D.dx = x - r.left;
-      D.dy = y - r.top;
-      document.body.appendChild(D.ghost);
-      D.card.classList.add('dragging');
+      DRAG.on = true;
+      var r = DRAG.card.getBoundingClientRect();
+      DRAG.ghost = DRAG.card.cloneNode(true);
+      DRAG.ghost.classList.add('ghost');
+      DRAG.ghost.style.cssText =
+        'position:fixed;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;pointer-events:none;z-index:99;margin:0';
+      DRAG.dx = x - r.left;
+      DRAG.dy = y - r.top;
+      document.body.appendChild(DRAG.ghost);
+      DRAG.card.classList.add('dragging');
     };
     var move = function (x, y) {
-      D.ghost.style.left = x - D.dx + 'px';
-      D.ghost.style.top = y - D.dy + 'px';
+      DRAG.ghost.style.left = x - DRAG.dx + 'px';
+      DRAG.ghost.style.top = y - DRAG.dy + 'px';
       var best = null;
-      [].slice.call(D.hand.children).forEach(function (c) {
-        if (c === D.card) return;
+      [].slice.call(DRAG.hand.children).forEach(function (c) {
+        if (c === DRAG.card) return;
         var r = c.getBoundingClientRect(),
           cx = r.left + r.width / 2,
           cy = r.top + r.height / 2,
@@ -20421,53 +20590,48 @@ td.kauto .cell {
       });
       if (best) {
         var ref = best.after ? best.c.nextSibling : best.c;
-        if (ref !== D.card) D.hand.insertBefore(D.card, ref);
+        if (ref !== DRAG.card) DRAG.hand.insertBefore(DRAG.card, ref);
       }
     };
     var end = function () {
-      if (!D) return;
-      clearTimeout(D.timer);
-      if (D.on) {
-        D.ghost.remove();
-        D.card.classList.remove('dragging');
-        var ids = [].slice.call(D.hand.children).map(function (c) {
+      if (!DRAG) return;
+      var d = DRAG;
+      DRAG = null;
+      clearTimeout(d.timer);
+      if (d.card) d.card.classList.remove('lift', 'dragging');
+      dragCleanup();
+      if (d.on) {
+        var ids = [].slice.call(d.hand.children).map(function (c) {
           return c.dataset.id || c.dataset.i;
         });
-        suppress = true;
+        dragSuppress = true;
         setTimeout(function () {
-          suppress = false;
+          dragSuppress = false;
         }, 400);
-        D = null;
-        setOrder(ids);
-      } else D = null;
+        if (PL) setOrder(ids);
+      }
+      // Anything that happened while the card was held (the computer moving, say) is shown now.
+      if (PL && PL.renderLater) {
+        PL.renderLater = false;
+        playRender();
+      }
     };
     el.addEventListener('mousedown', function (e) {
       var c = cardAt(e.target);
       if (!c || e.button) return;
-      D = { card: c, hand: c.parentElement, x0: e.clientX, y0: e.clientY, on: false };
+      DRAG = { card: c, hand: c.parentElement, x0: e.clientX, y0: e.clientY, on: false };
     });
-    el.addEventListener('mousemove', function (e) {
-      if (!D) return;
-      if (!D.on && Math.hypot(e.clientX - D.x0, e.clientY - D.y0) > 6) begin(e.clientX, e.clientY);
-      if (D.on) {
-        e.preventDefault();
-        move(e.clientX, e.clientY);
-      }
-    });
-    el.addEventListener('mouseup', end);
-    el.addEventListener('mouseleave', end);
-    // On a phone: press and hold a card for a moment, then drag it.
     el.addEventListener(
       'touchstart',
       function (e) {
         var c = cardAt(e.target);
         if (!c || e.touches.length > 1) return;
         var t = e.touches[0];
-        D = { card: c, hand: c.parentElement, x0: t.clientX, y0: t.clientY, on: false, armed: false };
-        D.timer = setTimeout(function () {
-          if (D) {
-            D.armed = true;
-            D.card.classList.add('lift');
+        DRAG = { card: c, hand: c.parentElement, x0: t.clientX, y0: t.clientY, on: false, armed: false };
+        DRAG.timer = setTimeout(function () {
+          if (DRAG) {
+            DRAG.armed = true;
+            DRAG.card.classList.add('lift');
             try {
               if (navigator.vibrate) navigator.vibrate(12);
             } catch (x) {}
@@ -20476,48 +20640,61 @@ td.kauto .cell {
       },
       { passive: true }
     );
-    el.addEventListener(
+    if (dragWired) return;
+    dragWired = true;
+    // Moves and releases are heard on the whole page, so letting go always ends the drag,
+    // even if the card under your finger was redrawn in the meantime.
+    document.addEventListener('mousemove', function (e) {
+      if (!DRAG) return;
+      if (!DRAG.on && Math.hypot(e.clientX - DRAG.x0, e.clientY - DRAG.y0) > 6) begin(e.clientX, e.clientY);
+      if (DRAG.on) {
+        e.preventDefault();
+        move(e.clientX, e.clientY);
+      }
+    });
+    document.addEventListener('mouseup', end);
+    document.addEventListener(
       'touchmove',
       function (e) {
-        if (!D) return;
+        if (!DRAG) return;
         var t = e.touches[0];
-        if (!D.armed) {
-          if (Math.hypot(t.clientX - D.x0, t.clientY - D.y0) > 8) {
-            clearTimeout(D.timer);
-            D = null;
+        if (!DRAG.armed) {
+          if (Math.hypot(t.clientX - DRAG.x0, t.clientY - DRAG.y0) > 8) {
+            clearTimeout(DRAG.timer);
+            DRAG = null;
           }
           return;
         }
         e.preventDefault();
-        if (!D.on) begin(t.clientX, t.clientY);
+        if (!DRAG.on) begin(t.clientX, t.clientY);
         move(t.clientX, t.clientY);
       },
       { passive: false }
     );
-    el.addEventListener('touchend', function (e) {
-      if (!D) return;
-      if (D.card) D.card.classList.remove('lift');
-      if (D.on) {
-        e.preventDefault();
+    document.addEventListener(
+      'touchend',
+      function (e) {
+        if (!DRAG) return;
+        if (DRAG.on) e.preventDefault();
         end();
-      } else {
-        clearTimeout(D.timer);
-        D = null;
-      }
-    });
-    el.addEventListener('touchcancel', end);
-    el.addEventListener(
+      },
+      { passive: false }
+    );
+    document.addEventListener('touchcancel', end);
+    window.addEventListener('blur', end);
+    document.addEventListener(
       'click',
       function (e) {
-        if (suppress) {
+        if (dragSuppress) {
           e.stopPropagation();
           e.preventDefault();
-          suppress = false;
+          dragSuppress = false;
         }
       },
       true
     );
   }
+
 
   /* ---------- chips: stakes for the games where they fit ---------- */
   var TEAMCHIPS = 'Each team puts in 2 chips, 1 for each partner; the winning team shares the pot.';
