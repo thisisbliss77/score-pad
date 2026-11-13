@@ -1006,6 +1006,30 @@ details.setup > summary {
   font-weight: 600;
   cursor: pointer;
 }
+/* Every folding section uses the same triangle, centred on its line and turned down when open,
+   instead of the browser's own marker (which sits on the text's baseline and varies in size). */
+details > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details > summary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 7px solid currentColor;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  transition: transform 0.15s ease;
+}
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
 .setup-body {
   padding: 0 14px 16px;
   display: flex;
@@ -2944,6 +2968,9 @@ td.kauto .cell {
 .vsgo {
   width: 100%;
   min-height: 46px;
+  /* Lay the triangle and the words out side by side, both centred on the same line. */
+  display: flex;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   font-weight: 600;
@@ -2953,6 +2980,8 @@ td.kauto .cell {
 .vsgo svg {
   width: 18px;
   height: 18px;
+  flex: none;
+  display: block;
   fill: currentColor;
 }
 .chdetails {
@@ -4771,7 +4800,6 @@ td.kauto .cell {
 
   function actionsHTML(g) {
     if (!g.players.length) return '';
-    var nd = playerName(g, nextDealer(g));
     return (
       '<div class="actions">' +
       (g.fixed
@@ -7457,6 +7485,7 @@ td.kauto .cell {
   /* ---------- play against the computer: screens ---------- */
   var VSK = {
     xeri: { name: 'Xeri', targets: [61, 101, 151], def: 151, unit: 'deal' },
+    xeri4: { gm: 1, name: 'Xeri', targets: [61, 101, 151], def: 151, unit: 'deal', team: 1 },
     farkle: { name: 'Farkle', targets: [5000, 10000], def: 10000, unit: 'turn' },
     tavli: { name: 'Tavli', targets: [3, 5, 7], def: 5, unit: 'game', tunit: ' points' },
     hearts: { gm: 1, name: 'Hearts', targets: [50, 100], def: 100, unit: 'hand', cpus: [3, 3, 3] },
@@ -7712,6 +7741,7 @@ td.kauto .cell {
     ui.vsCpus = VSK[k].cpus ? (g.vs && g.vs.cpus ? g.vs.cpus.length : VSK[k].cpus[2]) : 1;
     ui.vsPeople = 1;
     ui.vsNames = {};
+    ui.vsXN = 2;
     ui.vsName =
       here && g.players.length === 1
         ? g.players[0].name
@@ -7756,17 +7786,24 @@ td.kauto .cell {
       '</div>'
     );
   }
+  // Xeri is two players unless four (two partnerships) is chosen in the setup dialog.
+  function vsEffKind() {
+    return ui.vsKind === 'xeri' && +ui.vsXN === 4 ? 'xeri4' : ui.vsKind;
+  }
   function vsModalHTML() {
-    var K = VSK[ui.vsKind];
+    var ek = vsEffKind(),
+      K = VSK[ek];
     if (ui.modal !== 'vs' || !K) return '';
     var unit = K.tunit || '',
-      hmax = vsMaxPeople(ui.vsKind),
+      hmax = vsMaxPeople(ek),
       hn = Math.min(hmax, +ui.vsPeople || 1);
-    var cr = vsCpuRange(ui.vsKind, hn),
+    var cr = vsCpuRange(ek, hn),
       many = cr[1] > cr[0],
       nc = Math.max(cr[0], Math.min(cr[1], +ui.vsCpus || (K.cpus ? K.cpus[2] : 1)));
     var who = K.team
-      ? 'Your computer partner and two computer opponents join'
+      ? hn > 1
+        ? 'Two computer opponents join'
+        : 'Your computer partner (always on Hard) and two computer opponents join'
       : (K.cpus ? nc : 1) > 1
         ? 'The computers join'
         : 'The computer joins';
@@ -7774,6 +7811,19 @@ td.kauto .cell {
       '<div class="modal"><div class="dialog vsdlg" role="dialog" aria-modal="true" aria-labelledby="vs-t"><h3 id="vs-t">Play ' +
       esc(K.name) +
       ' against the computer</h3>' +
+      (ui.vsKind === 'xeri'
+        ? '<div class="vslbl"><span id="vs-xn">Players</span>' +
+          segHTML(
+            'vsxn',
+            +ui.vsXN === 4 ? 4 : 2,
+            [
+              [2, '2'],
+              [4, '4 (partners)']
+            ],
+            'vs-xn'
+          ) +
+          '</div>'
+        : '') +
       '<label class="vslbl">' +
       (hn > 1 ? 'Player 1' : 'Your name') +
       '<input class="field" id="vs-name" maxlength="24" autocomplete="off" value="' +
@@ -7860,7 +7910,7 @@ td.kauto .cell {
     );
   }
   function vsStart() {
-    var k = ui.vsKind,
+    var k = vsEffKind(),
       K = VSK[k],
       pi = presetIndex(K.name);
     if (!K || pi < 0) return;
@@ -7898,7 +7948,7 @@ td.kauto .cell {
         : extra.map(function (n) {
             return { id: uid(), name: n };
           });
-    me.name = K.team && extra.length ? name + ' & ' + extra[0] : name;
+    me.name = K.team ? name + ' & ' + (extra[0] || cn[2]) : name;
     g.players = [me].concat(people, cpus);
     g.vs = {
       kind: k,
@@ -7945,6 +7995,12 @@ td.kauto .cell {
     }
     if (act === 'vscpus') {
       ui.vsCpus = +b.dataset.v;
+      render();
+      return;
+    }
+    if (act === 'vsxn') {
+      ui.vsXN = +b.dataset.v;
+      ui.vsPeople = 1;
       render();
       return;
     }
@@ -7998,6 +8054,7 @@ td.kauto .cell {
   });
   // How many people can share the phone, and how many computers that leaves room for.
   var PEOPLE_OK = [
+    'xeri4',
     'hearts',
     'spades',
     'euchre',
@@ -9873,7 +9930,7 @@ td.kauto .cell {
   };
   function cpuNames(kind, taken) {
     var set =
-      ['xeri', 'tavli', 'diloti', 'kumkan', 'biriba'].indexOf(kind) >= 0
+      ['xeri', 'xeri4', 'tavli', 'diloti', 'kumkan', 'biriba'].indexOf(kind) >= 0
         ? 'greek'
         : CPU_NAMES[kind]
           ? kind
@@ -10024,7 +10081,8 @@ td.kauto .cell {
             gmNext();
             return;
           }
-          gmApply(who, M.ai(st, who, PL.ctx.level));
+          var lv = VSK[PL.kind].team && PL.seats[who].team === 0 ? 'hard' : PL.ctx.level;
+          gmApply(who, M.ai(st, who, lv));
         },
         wait != null ? wait : PL.pause || M.delay || 750
       );
@@ -19801,6 +19859,7 @@ td.kauto .cell {
       seatKeys: ['passSel']
     },
     spades: { arr: ['hands', 'tricks', 'names', 'bids'], idx: ['next', 'dealer', 'bidder'] },
+    xeri4: { arr: ['hands', 'names', 'caps', 'xeri', 'xn', 'xc'], idx: ['turn', 'dealer', 'last'] },
     euchre: { arr: ['hands', 'tricks', 'names'], idx: ['next', 'dealer', 'bidder', 'maker', 'out'] },
     pinochle: {
       arr: ['hands', 'tricks', 'names', 'out4', 'melds'],
@@ -20697,6 +20756,295 @@ td.kauto .cell {
       '</p></details>'
     );
   }
+
+  /* Xeri for four: two partnerships, partners opposite (you and seat 2 against seats 1 and 3).
+     Same rules as the two-player game: four cards start the table (a jack on top goes to the bottom of
+     the deck), the dealer shows the bottom card and gets it in the last hand, match the top card or play a
+     jack to take the pile, and taking a single card is a xeri (10, or 20 with jacks). Six cards each, so a
+     deal is two hands. Each team pools its cards, points and xeris. */
+  function x4Team(s) {
+    return s % 2;
+  }
+  var X4 = (GMS.xeri4 = {
+    deal: function (ctx) {
+      var deck = shuffle(deckOf(range(1, 13), [0, 1, 2, 3])),
+        n = 4;
+      var st = {
+        n: n,
+        deck: deck,
+        hands: [[], [], [], []],
+        pile: [],
+        caps: [[], [], [], []],
+        xeri: [0, 0, 0, 0],
+        xn: [0, 0, 0, 0],
+        xc: [[], [], [], []],
+        last: -1,
+        dealer: ctx.dealer,
+        turn: (ctx.dealer + 1) % n,
+        names: names(ctx),
+        seen: [],
+        end: false,
+        hand: 1
+      };
+      for (var i = 0; i < 4; i++) st.pile.push(st.deck.pop());
+      st.moved = [];
+      while (st.pile[st.pile.length - 1].r === 11 && st.moved.length < 4) {
+        var j = st.pile.pop();
+        st.deck.unshift(j);
+        st.moved.push(j);
+        st.pile.push(st.deck.pop());
+      }
+      st.revealed = [st.deck[0]];
+      while (st.revealed[st.revealed.length - 1].r === 11 && st.revealed.length < 6) st.revealed.push(st.deck[st.revealed.length]);
+      st.seen = st.pile.slice();
+      X4.dealHands(st);
+      return st;
+    },
+    // Six cards each; in the last hand the dealer's cards include the shown bottom card(s).
+    dealHands: function (st) {
+      var last = st.deck.length <= 6 * st.n,
+        rv = last
+          ? st.revealed.filter(function (c) {
+              return st.deck.indexOf(c) >= 0;
+            })
+          : [];
+      if (rv.length) {
+        st.deck = st.deck.filter(function (c) {
+          return rv.indexOf(c) < 0;
+        });
+        st.hands[st.dealer] = rv.slice();
+      }
+      for (var k = 0; k < 6; k++)
+        for (var s = 1; s <= st.n; s++) {
+          var p = (st.dealer + s) % st.n;
+          if (st.hands[p].length < 6 && st.deck.length) st.hands[p].push(st.deck.pop());
+        }
+      st.hands.forEach(function (h) {
+        h.sort(function (a, b) {
+          return a.s - b.s || a.r - b.r;
+        });
+      });
+    },
+    turn: function (st) {
+      return st.end ? -1 : st.turn;
+    },
+    title: function (st, ctx) {
+      return 'deal ' + (ctx.round + 1);
+    },
+    // Hard plays like the two-player computer, counting the next opponent's chance to take the pile
+    // and leaving good piles for its partner; Easy often plays carelessly.
+    ai: function (st, seat, level) {
+      var hand = st.hands[seat],
+        top = st.pile[st.pile.length - 1],
+        nextOpp = (seat + 1) % st.n,
+        partner = (seat + 2) % st.n;
+      var unseen = [];
+      for (var r = 0; r <= 13; r++) unseen[r] = 4;
+      st.seen.concat(hand).forEach(function (c) {
+        unseen[c.r]--;
+      });
+      var u = Math.max(1, st.deck.length + sum(st.hands, function (h) { return h.length; }) - hand.length),
+        h = st.hands[nextOpp].length,
+        hp = st.hands[partner].length;
+      var pileVal = sum(st.pile, XR.val);
+      var scores = hand.map(function (c) {
+        var pv = pileVal + XR.val(c) + (st.pile.length + 1) * 0.13;
+        if (top && (c.r === top.r || c.r === 11)) {
+          var isX = st.pile.length === 1 && c.r === top.r,
+            v = pv;
+          if (isX) v += c.r === 11 ? 20 : 10;
+          if (c.r === 11 && !isX) v -= Math.max(0.4, 2.4 - st.pile.length * 0.3);
+          return v;
+        }
+        var pr = XR.pHas(unseen[c.r], u, h),
+          pj = c.r === 11 ? pr : XR.pHas(unseen[11], u, h);
+        var risk = 1 - (1 - pr) * (1 - pj),
+          help = (1 - risk) * XR.pHas(unseen[c.r] + unseen[11], u, hp) * 0.5;
+        if (!st.pile.length) return -(pr * ((c.r === 11 ? 20 : 10) + pv) + (1 - pr) * pj * pv) - (c.r === 11 ? 2 : 0) + help * pv;
+        return -risk * pv + help * pv;
+      });
+      var best = 0;
+      scores.forEach(function (v, i) {
+        if (v > scores[best]) best = i;
+      });
+      if (level === 'easy') {
+        var xi = hand.findIndex(function (c) {
+          return top && st.pile.length === 1 && c.r === top.r;
+        });
+        if (xi >= 0 && Math.random() < 0.6) return { card: hand[xi].id };
+        if (Math.random() < 0.55) return { card: pick(hand).id };
+      }
+      return { card: hand[best].id };
+    },
+    act: function (a, el, st, P) {
+      if (a === 'card') return { card: el.dataset.id };
+      return null;
+    },
+    apply: function (st, seat, mv) {
+      var h = st.hands[seat],
+        c = takeIds(h, [mv.card])[0],
+        top = st.pile[st.pile.length - 1],
+        who = seat === 0 ? 'You' : st.names[seat],
+        msg;
+      if (!c) return null;
+      st.seen.push(c);
+      if (top && (c.r === top.r || c.r === 11)) {
+        var n = st.pile.length + 1,
+          x = st.pile.length === 1 && c.r === top.r ? (c.r === 11 ? 20 : 10) : 0;
+        if (x) {
+          st.xeri[seat] += x;
+          st.xn[seat]++;
+          st.xc[seat].push(c);
+        }
+        st.caps[seat] = st.caps[seat].concat(st.pile, [c]);
+        st.pile = [];
+        st.last = seat;
+        msg = (x ? 'Xeri! ' : '') + who + (seat === 0 ? ' take ' : ' takes ') + n + ' cards with the ' + nameOf(c) + '.';
+      } else {
+        st.pile.push(c);
+        msg = who + (seat === 0 ? ' play the ' : ' plays the ') + nameOf(c) + '.';
+      }
+      st.turn = (seat + 1) % st.n;
+      if (st.hands.every(function (x) { return !x.length; })) {
+        if (st.deck.length) {
+          X4.dealHands(st);
+          st.hand++;
+          msg += ' New cards are dealt.';
+        } else {
+          st.end = true;
+          if (st.pile.length) {
+            var to = st.last >= 0 ? st.last : st.dealer,
+              rest = st.pile.length;
+            st.caps[to] = st.caps[to].concat(st.pile);
+            st.pile = [];
+            msg += (rest === 1 ? ' The last card goes to ' : ' The last ' + rest + ' cards go to ') + (x4Team(to) === 0 ? 'your team.' : 'the other team.');
+          }
+        }
+      }
+      return { msg: msg, pause: 650 };
+    },
+    // Each team's cards, points and xeris, as one result per team.
+    score: function (st) {
+      var teams = [0, 1].map(function (t) {
+        var caps = st.caps[t].concat(st.caps[t + 2]);
+        return { caps: caps, cards: caps.length, most: 0, pts: sum(caps, XR.val), xeri: st.xeri[t] + st.xeri[t + 2], xn: st.xn[t] + st.xn[t + 2] };
+      });
+      if (teams[0].cards > teams[1].cards) teams[0].most = 3;
+      else if (teams[1].cards > teams[0].cards) teams[1].most = 3;
+      teams.forEach(function (o) {
+        o.total = o.most + o.pts + o.xeri;
+      });
+      return teams;
+    },
+    record: function (g, st, res, P) {
+      var r = rowFor(g, P.seats[st.dealer].pid),
+        cid = scoreCol(g).id;
+      [P.seats[0].pid, P.seats[1].pid].forEach(function (pid, t) {
+        setCell(r, pid, cid, res[t].total);
+        setIf(g, r, pid, 'Xeris', res[t].xn);
+      });
+    },
+    doneLine: function (st, res) {
+      return 'Deal scored: your team ' + res[0].total + ', the other team ' + res[1].total + '.';
+    },
+    detail: function (st, res, P) {
+      var rows = [
+        ['Cards taken', 'cards'],
+        ['Most cards', 'most'],
+        ['Card points', 'pts'],
+        ['Xeri', 'xeri'],
+        ['This deal', 'total']
+      ];
+      return (
+        '<div class="sheet"><table class="rtable"><thead><tr><th></th><th>Your team</th><th>' + esc(P.seats[1].name + ' & ' + P.seats[3].name) + '</th></tr></thead><tbody>' +
+        rows
+          .map(function (r) {
+            return (
+              '<tr' + (r[1] === 'total' ? ' class="rt"' : '') + '><td>' + r[0] + '</td><td>' + res[0][r[1]] + (r[1] === 'xeri' && res[0].xn ? ' (' + res[0].xn + ')' : '') +
+              '</td><td>' + res[1][r[1]] + (r[1] === 'xeri' && res[1].xn ? ' (' + res[1].xn + ')' : '') + '</td></tr>'
+            );
+          })
+          .join('') +
+        '</tbody></table></div>' +
+        takenPilesHTML(
+          [res[0].caps, res[1].caps],
+          ['Your team', P.seats[1].name + ' & ' + P.seats[3].name],
+          function (t, c) {
+            return st.xc[t].concat(st.xc[t + 2]).some(function (x) {
+              return x.id === c.id;
+            });
+          },
+          XR.val
+        )
+      );
+    },
+    view: function (st, P) {
+      var my = X4.turn(st) === 0,
+        top = st.pile[st.pile.length - 1];
+      var out = seatChips(
+        P,
+        function (i) {
+          return st.hands[i].length + (st.hands[i].length === 1 ? ' card' : ' cards') + (i === 2 ? ' · partner' : '');
+        },
+        st.turn > 0 && !st.end ? st.turn : -1
+      );
+      // Each team's taken pile, laid out like the two-player table so the two piles line up.
+      var taken = function (t, label) {
+        var n = st.caps[t].length + st.caps[t + 2].length,
+          xs = st.xc[t].concat(st.xc[t + 2]);
+        return (
+          '<div class="tpile" role="img" aria-label="' + esc(label) + ' taken pile: ' + n + ' cards">' +
+          '<div class="tstack">' +
+          xs
+            .map(function (c) {
+              return '<span class="card peek' + (c.s === 1 || c.s === 2 ? ' red' : '') + '">' + cardFace(c) + '</span>';
+            })
+            .join('') +
+          '<span class="tback' + (n ? '' : ' nil') + '">' + n + '</span></div>' +
+          '<span class="tl">' + esc(label) + '<br>taken pile' + (xs.length ? '<br>' + xs.length + (xs.length === 1 ? ' xeri' : ' xeris') : '') + '</span></div>'
+        );
+      };
+      var shown = st.pile.slice(-6);
+      out +=
+        '<div class="xtable">' +
+        '<div class="xrow xmine">' + taken(1, 'Their') + '</div>' +
+        '<div class="xmid"><div class="deckbox">' +
+        (st.deck.length
+          ? '<div class="deckstack">' +
+            (st.revealed || [])
+              .filter(function (c) {
+                return st.deck.indexOf(c) >= 0;
+              })
+              .map(function (c) {
+                return '<span class="card peek' + (c.s === 1 || c.s === 2 ? ' red' : '') + '" role="img" aria-label="Shown at the bottom of the deck: ' + esc(nameOf(c)) + '">' + cardFace(c) + '</span>';
+              })
+              .join('') +
+            '<span class="card back"></span></div>'
+          : '<span class="card ghostcard"></span>') +
+        '<span><b>Deck</b> · ' + (st.deck.length ? st.deck.length + ' left' : 'empty') + '</span></div>' +
+        '<div class="pilebox"><div class="pile" aria-label="Pile">' +
+        (shown.length
+          ? (st.pile.length > shown.length ? '<span class="buried">+' + (st.pile.length - shown.length) + '</span>' : '') +
+            shown
+              .map(function (c, i) {
+                return '<span class="card' + (c.s === 1 || c.s === 2 ? ' red' : '') + (i === shown.length - 1 ? ' top' : '') + '"' + ' data-fly="' + c.id + '">' + cardFace(c) + '</span>';
+              })
+              .join('')
+          : '<span class="pempty">The table is empty</span>') +
+        '</div><span class="pilecount">' + (st.pile.length ? st.pile.length + (st.pile.length === 1 ? ' card on the table' : ' cards on the table') : '') + '</span></div></div>' +
+        '<div class="xrow xmine">' + taken(0, 'Your team’s') + '</div></div>';
+      out += handButtons(st.hands[0], {
+        can: function () {
+          return my;
+        },
+        mark: function (c) {
+          return easyMode() && my && top && (c.r === top.r || c.r === 11);
+        }
+      });
+      return out + note(st.hand === 2 && st.deck.length === 0 ? 'Last hand.' : '');
+    },
+    nextLabel: 'Next deal'
+  });
 
   // Tuned by simulation: Hard calls trump readily and bids boldly; Easy is timid and plays loosely.
   EU.TH = { easy: 7.6, hard: 5.6 };
